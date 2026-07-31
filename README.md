@@ -1,26 +1,28 @@
-# Acervo — Código fuente y documentación (para revisión)
+# Acervo — Source code and documentation (for review)
 
-Aplicación web (PWA) que reúne **trabajo jurídico** (causas, redacción de escritos, personas,
-plazos) y **estudio del Derecho** (biblioteca/lector, apuntes, flashcards). Versión desplegada:
+A PWA web application that combines **legal work** (cases, document drafting, people,
+deadlines) and **legal study** (library/reader, notes, flashcards). Deployed version:
 **acervo-v354**.
 
-> Para entender el sistema a fondo, lee primero **`docs/INFORME_TECNICO.md`**.
+> To understand the system in depth, read **`docs/INFORME_TECNICO.md`** first.
 
-## Estructura de esta carpeta
+## Folder structure
 ```
 acervoapp/
-├── README.md                         ← este archivo
-├── app/                              ← el frontend (todo el código de la app)
-│   ├── index.html                    ← aplicación completa (HTML+CSS+JS en un archivo, sin minificar, ~13.800 líneas)
+├── README.md                         ← this file
+├── Dockerfile                        ← static local runtime with nginx
+├── docker-compose.yml                ← local Docker workflow
+├── app/                              ← frontend application source
+│   ├── index.html                    ← complete app (HTML+CSS+JS in one unminified file, ~13.8k lines)
 │   ├── sw.js                         ← Service Worker (PWA / offline)
-│   ├── manifest.webmanifest          ← manifiesto PWA
-│   └── icon-180/192/512.png          ← íconos
+│   ├── manifest.webmanifest          ← PWA manifest
+│   └── icon-180/192/512.png          ← icons
 ├── supabase/
-│   ├── functions/                    ← Edge Functions (Deno/TypeScript, operaciones admin)
+│   ├── functions/                    ← Edge Functions (Deno/TypeScript, admin operations)
 │   │   ├── admin-create-user.ts
-│   │   ├── admin-manage-user.ts      ← editar (correo/contraseña) / eliminar usuario
-│   │   └── admin-storage-usage.ts    ← medición de almacenamiento
-│   └── sql/                          ← scripts de estructura (DDL/RLS) de la base de datos
+│   │   ├── admin-manage-user.ts      ← update (email/password) / delete user
+│   │   └── admin-storage-usage.ts    ← storage usage reporting
+│   └── sql/                          ← database structure scripts (DDL/RLS)
 │       ├── acervo-setup.sql
 │       ├── acervo-sql-libros-compartidos.sql
 │       ├── acervo-sql-pendiente.sql
@@ -28,55 +30,65 @@ acervoapp/
 │       ├── realtime-setup.sql
 │       └── social-setup.sql
 └── docs/
-    ├── INFORME_TECNICO.md            ← informe técnico completo (arquitectura, módulos, flujos)
-    └── ESQUEMA_BD_REFERENCIA.md      ← mapa del esquema: qué DDL está en los .sql y qué falta exportar
+    ├── INFORME_TECNICO.md            ← full technical report (architecture, modules, flows)
+    ├── ESQUEMA_BD_REFERENCIA.md      ← schema map: what DDL exists in SQL files and what is still missing
+    ├── ENGINEERING_QUALITY_IMPROVEMENT_PLAN.md
+    └── PROJECT_SCOPE_MAP.md
 ```
 
 ## Stack
-- **Frontend:** HTML5 + CSS3 + JavaScript "vanilla" (sin framework), en un único `index.html`.
-- **Backend (BaaS):** Supabase — Auth (correo/contraseña), PostgreSQL + RLS, Storage
+- **Frontend:** HTML5 + CSS3 + vanilla JavaScript, all in a single `index.html`.
+- **Backend (BaaS):** Supabase — Auth (email/password), PostgreSQL + RLS, Storage
   (bucket `acervo-files`), Edge Functions (Deno).
-- **Hosting:** Cloudflare Pages (sitio estático).
-- **Librerías de terceros (CDN, runtime):** pdf.js 3.11.174 (Apache-2.0), mammoth 1.6.0
-  (BSD-2-Clause), jspdf 2.5.1 (MIT), @supabase/supabase-js v2 (MIT). No hay `node_modules`
-  ni build: se sirve el fuente tal cual.
+- **Hosting:** Cloudflare Pages (static site).
+- **Third-party runtime libraries (CDN):** pdf.js 3.11.174 (Apache-2.0), mammoth 1.6.0
+  (BSD-2-Clause), jspdf 2.5.1 (MIT), @supabase/supabase-js v2 (MIT). There is no `node_modules`
+  directory and no build step; the source is served directly.
 
-## Cómo correrlo / revisarlo
-- **Ver el código:** abrir `app/index.html` en un editor.
-- **Ejecutar localmente:** servir la carpeta `app/` con cualquier servidor estático, p. ej.:
+## Running locally
+- **Inspect the code:** open `app/index.html` in an editor.
+- **Recommended local run path (Docker):**
+  ```bash
+  docker compose up --build
+  # open http://localhost:8080
+  ```
+  This serves the `app/` folder through nginx in a local container.
+- **Fallback local run path (without Docker):**
   ```bash
   cd app && python3 -m http.server 8080
-  # abrir http://localhost:8080
+  # open http://localhost:8080
   ```
-  (La app se conecta a un proyecto Supabase real vía la **clave publicable** incluida en
-  `index.html`. Para pruebas aisladas, apuntar a un proyecto Supabase propio — ver más abajo.)
-- **Desplegar:** publicar la carpeta `app/` en Cloudflare Pages. Al actualizar, se incrementa el
-  nombre de caché del Service Worker (`const CACHE = 'acervo-vN'` en `sw.js`).
+- The app connects to a real Supabase project using the **publishable key** included in
+  `index.html`. For isolated testing, point it to your own Supabase project — see below.
+- **Deployment:** publish the `app/` folder to Cloudflare Pages. When updating, increment the
+  Service Worker cache name (`const CACHE = 'acervo-vN'` in `sw.js`).
 
-## Backend: puesta en marcha (referencia)
-1. Crear proyecto en Supabase.
-2. Ejecutar los `.sql` de `supabase/sql/` (definen tablas de compartición, funciones RLS,
-   políticas de Storage y realtime). **Nota:** parte del esquema (`acervo_state`, `profiles`,
-   `acervo_master`, `shared_causas`, `shared_books`, columna `firma`) se creó por panel y **no**
-   está como script — ver `docs/ESQUEMA_BD_REFERENCIA.md`.
-3. Crear el bucket `acervo-files`.
-4. Desplegar las Edge Functions (`supabase functions deploy <nombre>`). Requieren las variables
-   `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (las provee Supabase).
-5. En `app/index.html`, ajustar `SUPA_URL` y `SUPA_KEY` (líneas ~2567–2568) al proyecto propio.
+## Backend setup (reference)
+1. Create a Supabase project.
+2. Run the `.sql` files in `supabase/sql/` (they define sharing tables, RLS functions,
+   Storage policies, and realtime configuration). **Note:** part of the schema
+   (`acervo_state`, `profiles`, `acervo_master`, `shared_causas`, `shared_books`, `firma` column)
+   was created manually in the dashboard and is **not yet** present as versioned SQL — see
+   `docs/ESQUEMA_BD_REFERENCIA.md`.
+3. Create the `acervo-files` bucket.
+4. Deploy the Edge Functions (`supabase functions deploy <name>`). They require
+   `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` environment variables.
+5. In `app/index.html`, adjust `SUPA_URL` and `SUPA_KEY` (around lines 2567–2568) to your own project.
 
-## Notas de seguridad (importante para el revisor)
-- `index.html` contiene `SUPA_URL` y `SUPA_KEY`. **`SUPA_KEY` es la clave *publicable*
-  (`sb_publishable_...`), pública por diseño**; NO es la `service_role`. La `service_role` vive
-  **solo** en el servidor (Edge Functions, vía variables de entorno) y **no** está en este código.
-- La seguridad de datos se apoya en **RLS** (PostgreSQL) + validación de admin en las Edge
-  Functions. La app **no usa IA en runtime** (todo es determinístico).
+## Security notes (important for reviewers)
+- `index.html` contains `SUPA_URL` and `SUPA_KEY`. **`SUPA_KEY` is the publishable key
+  (`sb_publishable_...`), public by design**; it is NOT the `service_role` key. The `service_role`
+  key exists **only** on the server side (Edge Functions via environment variables) and is not
+  present in this source code.
+- Data security relies on **RLS** (PostgreSQL) plus admin validation in Edge Functions.
+- The app does **not** use AI at runtime; all behavior is deterministic.
 
-## Puntos conocidos a revisar (candidatos de mejora)
-- Fijar la **sub-versión exacta** de `@supabase/supabase-js` (hoy `@2`).
-- Exportar el **DDL/RLS completo** desde el panel para tener todo el esquema versionado.
-- `index.html` es un archivo grande y monolítico: evaluar modularización si el proyecto crece.
-- Revisar avisos de seguridad de las versiones de las librerías de terceros antes de una release.
+## Known review points (improvement candidates)
+- Pin the **exact sub-version** of `@supabase/supabase-js` (currently `@2`).
+- Export the **full DDL/RLS schema** from the dashboard so the entire backend is versioned.
+- `index.html` is a large monolithic file; modularization should be evaluated as the project evolves.
+- Review security notices for third-party library versions before a release.
 
-## Qué NO está incluido (a propósito)
-Datos reales de usuarios/clientes, credenciales secretas, tokens, `.env`, `node_modules`, ni la
-carpeta de trabajo personal. Este paquete es **solo código + documentación**.
+## What is intentionally not included
+Real user/client data, secret credentials, tokens, `.env`, `node_modules`, and personal working
+files are not included. This package is **code and documentation only**.

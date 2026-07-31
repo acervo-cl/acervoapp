@@ -1,0 +1,235 @@
+# Engineering Quality Improvement Plan for Acervo
+
+Date: 2026-07-31
+Status: Proposed before implementation
+Scope: Improve quality, maintainability, reproducibility, and security without adding new features
+
+## 1. Objective
+
+This plan is meant to move Acervo from a codebase that is functional but fragile toward one that is more maintainable, reproducible, and auditable, with a clear software engineering approach. The guiding principle is to preserve current behavior while reducing technical risk.
+
+The goal is not to rewrite the product or change the stack for fashion reasons. The goal is to clarify responsibilities, properly version the system, and leave behind a reliable way to keep working.
+
+## 2. Current Problems Observed
+
+- The main frontend lives in one very large `app/index.html` file.
+- Business logic, rendering, persistence, synchronization, and utilities are tightly coupled.
+- The real Supabase schema is not fully versioned in SQL.
+- Local execution depends on manual steps and is not consistently reproducible.
+- There is no minimal layer of automated checks to protect refactors.
+- Some CDN-loaded dependencies could be versioned more explicitly, and operational decisions are spread across multiple places.
+
+## 3. Working Principles
+
+- Do not add features during this effort.
+- Do not change behavior unless there is a clear reliability, security, or maintainability reason.
+- Make changes small, clear, and reversible.
+- Prioritize extraction and organization before rewriting.
+- Version everything needed to reconstruct the system.
+- Add only tools that provide real value.
+
+## 4. Expected Outcome
+
+At the end of this plan, Acervo should have:
+
+- a more modular and readable frontend structure;
+- a consistent way to run locally with Docker;
+- a more completely versioned backend and database schema;
+- minimal checks to detect regressions;
+- clearer technical and operational documentation;
+- a safer foundation for future refactors.
+
+## 5. Proposed Phases
+
+## Phase 0. Baseline and Protection
+
+Objective: make sure we understand the current state before moving pieces around.
+
+Tasks:
+
+- Identify the critical flows that must not break.
+- Record the external dependencies used by the frontend.
+- Review and consolidate the repository’s minimum configuration.
+- Define a short list of initial manual validation checks.
+
+Deliverables:
+
+- manual validation checklist;
+- inventory of dependencies and sensitive areas;
+- phase-based plan confirmed for execution.
+
+## Phase 1. Local Reproducibility with Docker
+
+Objective: make it possible to run the app locally in a simple and consistent way.
+
+Tasks:
+
+- Add a `Dockerfile` to serve `app/` as a static site.
+- Add `docker-compose.yml` for local development.
+- Add `.dockerignore`.
+- Document the local Docker-based workflow in `README.md`.
+
+Recommended decision:
+
+- Start by using Docker only to serve the static frontend.
+- Do not try to bring in a local Supabase stack in this first phase.
+
+Reason:
+
+This gives immediate value with low risk and keeps Docker from becoming unnecessary complexity.
+
+Deliverables:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.dockerignore`
+- documented instructions
+
+## Phase 2. Safe Frontend Modularization
+
+Objective: reduce the risk of the single-file frontend without changing features.
+
+Tasks:
+
+- Extract JavaScript out of `app/index.html` into domain-based files.
+- Keep the main HTML file as the application shell.
+- Extract lower-risk modules first.
+
+Suggested extraction order:
+
+- `config`
+- `utils`
+- `state`
+- `storage`
+- `auth`
+- `render`
+- `shared`
+- `admin`
+- `drafting`
+- `study`
+
+Rules for this phase:
+
+- Do not introduce a framework.
+- Do not rename data structures unless there is a real need.
+- Do not mix structural refactors with business logic changes.
+- Keep every step verifiable.
+
+Deliverables:
+
+- an organized frontend scripts folder;
+- a smaller and easier-to-read `index.html`;
+- behavior equivalent to the current app.
+
+## Phase 3. Real Backend and Database Versioning
+
+Objective: make the system reconstructable without depending on manual Supabase dashboard work.
+
+Tasks:
+
+- Identify tables, functions, policies, and columns that are currently missing from versioned SQL.
+- Create migrations or consolidated scripts to cover:
+  - `acervo_state`
+  - `profiles`
+  - `acervo_master`
+  - `shared_causas`
+  - `shared_books`
+  - related RLS functions and policies
+- Review consistency across existing scripts.
+- Document the correct application order.
+
+Main risk:
+
+If this is not done, any new environment will continue to be only a partial and fragile reconstruction.
+
+Deliverables:
+
+- a more complete schema in versioned files;
+- more precise installation documentation;
+- less dependence on manual dashboard state.
+
+## Phase 4. Minimal Checks for Safe Refactoring
+
+Objective: create a small but useful safety net.
+
+Tasks:
+
+- Add one test or self-check for basic app loading.
+- Cover basic state serialization and persistence.
+- Cover at least one important function from the drafting engine.
+- Cover at least one critical rule related to permissions or validation.
+
+Approach:
+
+- Start small.
+- Test pure logic before complex UI.
+- Avoid introducing a heavy testing infrastructure unless it is truly needed.
+
+Deliverables:
+
+- a minimum set of repeatable checks;
+- a base for increasing coverage where it actually brings value.
+
+## Phase 5. Operational and Technical Hardening
+
+Objective: reduce maintenance and production risk.
+
+Tasks:
+
+- Pin external versions where they are currently too open-ended.
+- Review CORS and validations in Edge Functions.
+- Review the Service Worker cache strategy.
+- Centralize non-secret sensitive configuration.
+- Improve consistency in technical documentation.
+- Evaluate linting and formatting with the minimum useful tooling.
+
+Deliverables:
+
+- less implicit behavior;
+- lower risk from uncontrolled changes;
+- better operational visibility.
+
+## 6. Recommended Priorities
+
+Recommended execution order:
+
+1. Docker and local reproducibility.
+2. Validation checklist and baseline.
+3. Safe frontend modularization.
+4. Complete database versioning.
+5. Minimal automated checks.
+6. Technical hardening.
+
+Note:
+
+Even though complete database versioning is critical, it still makes sense to begin with Docker and the baseline because that lowers friction and makes the rest of the work easier from day one.
+
+## 7. What Not to Do Yet
+
+- Do not migrate to React, Vue, or another framework at this stage.
+- Do not redesign the UI.
+- Do not add new features.
+- Do not introduce too many build dependencies.
+- Do not rewrite the drafting engine before putting minimal protection around it.
+- Do not mix structural changes with product changes.
+
+## 8. Success Criteria
+
+We should consider this initiative successful if:
+
+- a new developer can run the project locally with clear steps;
+- the frontend no longer depends on one massive file for its main logic;
+- the backend schema can be reconstructed from the repository with higher fidelity;
+- the riskiest refactors have at least a minimal validation safety net;
+- the codebase is ready for future changes with lower risk.
+
+## 9. Immediate Implementation Proposal
+
+Implementation should begin with this first block:
+
+1. Add basic Docker support to serve the app.
+2. Document the local Docker workflow.
+3. Define a manual validation checklist.
+4. Prepare the extraction of JavaScript from `index.html` in small cuts.
+
+This first block delivers fast value, reduces friction, and leaves the project well positioned for the more delicate changes that come next.

@@ -1,0 +1,7 @@
+.git
+.agents
+.DS_Store
+node_modules
+.supabase
+backups
+*.log
