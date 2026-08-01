@@ -1,7 +1,7 @@
 # Phase 2.5 Index Reduction Plan
 
 Date: August 1, 2026
-Status: In progress
+Status: Completed
 Scope: Reduce `app/index.html` further without changing product behavior or expanding features
 
 ## 1. Objective
@@ -39,14 +39,29 @@ Apply one controlled extraction pass with these rules:
 - no multi-area rewrite in one diff;
 - keep the extraction domain-based and easy to verify.
 
-## 4. Selected Extraction Scope
+## 4. Executed Extraction Scope
 
-This phase will extract one combined collaboration/configuration module from `index.html`:
+Phase 2.5 was completed in three controlled passes:
+
+1. collaboration/configuration extraction:
 
 - master configuration load/publish/apply helpers;
 - base library load/publish helpers;
 - social/collaboration connection helpers;
 - shared books cloud sync helpers.
+
+2. backup/import/export extraction:
+
+- reset data flow;
+- backup export flow;
+- backup import flow.
+
+3. admin library-viewer extraction:
+
+- view another user library;
+- return to own library;
+- toggle read-only/edit mode;
+- admin library banner state.
 
 Reason for choosing this block:
 
@@ -57,16 +72,22 @@ Reason for choosing this block:
 
 ## 5. Planned Output
 
-Expected code output:
+Executed code output:
 
-- a new JS module under `app/js/` for this extracted block;
-- updated script load order in `app/index.html`;
-- the equivalent inline functions removed from `index.html`.
+- [collaboration-config.js](/Users/ignacio/repos/acervo/acervoapp-dev/app/js/collaboration-config.js)
+- [backup-transfer.js](/Users/ignacio/repos/acervo/acervoapp-dev/app/js/backup-transfer.js)
+- [admin-library-viewer.js](/Users/ignacio/repos/acervo/acervoapp-dev/app/js/admin-library-viewer.js)
+- updated script load order in `app/index.html`
+- equivalent inline functions removed from `index.html`
 
-Expected documentation output:
+Executed documentation output:
 
 - this Phase 2.5 plan;
 - normal commit checkpoint after verification.
+
+Measured reduction:
+
+- `app/index.html` reduced from 11,624 lines to 11,262 lines during Phase 2.5.
 
 ## 6. Verification Requirements
 
@@ -79,8 +100,12 @@ Minimum verification after the extraction:
 - shared books still render;
 - admin master configuration flows still open.
 
-## 7. Stop Condition
+## 7. Outcome
 
-Phase 2.5 should stop after this extraction pass unless a very small follow-up fix is required.
+Phase 2.5 achieved the intended result:
 
-The goal is reduction with control, not continuous refactoring before the backend/schema work.
+- more non-rendering logic was removed from `index.html`;
+- the remaining inline code is now more concentrated in rendering-heavy areas;
+- further reduction is still possible, but the next targets are riskier and should be treated as a separate step.
+
+The goal of this phase was reduction with control, and that goal was met.

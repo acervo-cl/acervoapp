@@ -10,10 +10,11 @@ Scope: Improve quality, maintainability, reproducibility, and security without a
 - Phase 0 baseline documents created.
 - Phase 1 Docker-based local reproducibility completed.
 - Phase 2 frontend modularization implemented and manually validated in the local Docker environment.
+- Phase 2.5 additional `index.html` reduction completed in three controlled extraction passes.
 - Phase 2 closure documents created:
   - `docs/PHASE_2_REGRESSION_CHECKLIST.md`
   - `docs/TEST_PLAN_PHASE_2.md`
-- Phase 3 backend/schema reconstruction is the next implementation priority.
+- Phase 3 will continue with remaining frontend extraction work before backend/schema reconstruction.
 - Phase 4 automated checks are defined but not yet implemented.
 
 ## 1. Objective
@@ -143,41 +144,48 @@ Closure requirements:
 - keep one stable checkpoint commit before starting Phase 3;
 - record any intentionally skipped test or environment limitation.
 
-## Phase 3. Real Backend and Database Versioning
+## Phase 3. Remaining Frontend Reduction and Delayed Backend Versioning
 
 Status: Next
 
-Objective: make the system reconstructable without depending on manual Supabase dashboard work.
+Objective: continue reducing the remaining high-risk monolith areas in `app/index.html`, then finish backend reconstruction work after the frontend extraction boundary is clearer.
 
 Tasks:
 
-- Identify tables, functions, policies, and columns that are currently missing from versioned SQL.
-- Create migrations or consolidated scripts to cover:
-  - `acervo_state`
-  - `profiles`
-  - `acervo_master`
-  - `shared_causas`
-  - `shared_books`
-  - related RLS functions and policies
-- Review consistency across existing scripts.
-- Document the correct application order.
+- Extract the remaining frontend logic still embedded in `app/index.html`, prioritizing by risk and cohesion.
+- Delay production-schema-dependent work until the remaining frontend reduction reaches a reasonable stopping point.
+- Keep the existing repo-only backend gap analysis as the reference for later database work.
+- Only after the frontend extraction pass stabilizes:
+  - identify tables, functions, policies, and columns that are currently missing from versioned SQL;
+  - create migrations or consolidated scripts to cover:
+    - `acervo_state`
+    - `profiles`
+    - `acervo_master`
+    - `shared_causas`
+    - `shared_books`
+    - related RLS functions and policies;
+  - review consistency across existing scripts;
+  - document the correct application order.
 
 Main risk:
 
-If this is not done, any new environment will continue to be only a partial and fragile reconstruction.
+- if frontend extraction continues without control, regressions become more likely;
+- if backend reconstruction keeps being deferred indefinitely, any new environment will remain only a partial reconstruction.
 
 Deliverables:
 
+- a smaller and more maintainable `index.html`;
+- additional extracted frontend modules;
 - a more complete schema in versioned files;
 - more precise installation documentation;
 - less dependence on manual dashboard state.
 
 Recommended starting point:
 
-1. inventory the current SQL files and Supabase objects already versioned;
-2. compare them against the real project tables, policies, buckets, and functions;
-3. produce missing migrations in dependency-safe order;
-4. document the exact bootstrap sequence for a new environment.
+1. continue extracting the remaining non-trivial `index.html` blocks in controlled passes;
+2. stop before broad rendering rewrites or behavior changes;
+3. once the frontend reduction reaches a clean boundary, resume the backend/schema work already mapped in the Phase 3 gap analysis;
+4. only then prepare the exact bootstrap sequence for a new environment.
 
 ## Phase 4. Minimal Checks for Safe Refactoring
 
@@ -231,9 +239,10 @@ Recommended execution order:
 1. Docker and local reproducibility.
 2. Validation checklist and baseline.
 3. Safe frontend modularization.
-4. Complete database versioning.
-5. Minimal automated checks.
-6. Technical hardening.
+4. Additional controlled `index.html` reduction.
+5. Complete database versioning.
+6. Minimal automated checks.
+7. Technical hardening.
 
 Note:
 
@@ -269,7 +278,8 @@ The original first block has already been executed:
 
 Immediate next block:
 
-1. Close Phase 2 with the regression checklist and a stable checkpoint commit.
-2. Audit the real Supabase backend against the repository SQL.
-3. Add the first minimal automated checks for extracted pure logic.
-4. Only after that, continue with hardening tasks.
+1. Close Phase 2 / Phase 2.5 with stable checkpoint commits.
+2. Continue the remaining controlled frontend extraction work from `index.html`.
+3. Resume backend/schema reconstruction only after that frontend reduction reaches a sensible stop point.
+4. Add the first minimal automated checks for extracted pure logic.
+5. Only after that, continue with hardening tasks.

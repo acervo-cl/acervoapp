@@ -1,7 +1,7 @@
 # Phase 3 Backend Gap Analysis
 
 Date: August 1, 2026
-Status: Repo-only audit completed
+Status: Repo-only audit completed, backend work intentionally deferred
 Scope: Identify what the application expects from Supabase versus what is currently versioned in the repository
 
 ## 1. Purpose
@@ -292,8 +292,18 @@ Safety note:
 - these are metadata reads only;
 - they should still be treated carefully because they target production infrastructure.
 
-## 10. Immediate Next Action
+## 10. Current Position in the Roadmap
 
-The next safe implementation step is not a production query.
+This analysis remains valid, but it is not the immediate implementation target anymore.
 
-It is to create an authoritative repo-side schema inventory document in English, using current files only, and use that as the checklist before any human-run production verification.
+Current execution order:
+
+1. continue the remaining controlled frontend extraction work from `app/index.html`;
+2. stop when the remaining inline code reaches a reasonable rendering-heavy boundary;
+3. only then resume backend/schema versioning work using this document as the starting map;
+4. if production verification is still required at that point, use read-only human-run commands only.
+
+So this document should now be treated as:
+
+- the backend reconstruction reference;
+- not the next coding task.
