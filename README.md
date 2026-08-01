@@ -53,6 +53,11 @@ acervoapp/
   # open http://localhost:8080
   ```
   This serves the `app/` folder through nginx in a local container.
+- **Run minimal automated checks in Docker:**
+  ```bash
+  docker compose run --rm test
+  ```
+  This uses a separate Node container and keeps the static app runtime unchanged.
 - **Fallback local run path (without Docker):**
   ```bash
   cd app && python3 -m http.server 8080

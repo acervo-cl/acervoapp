@@ -174,7 +174,7 @@ Recommended starting point:
 
 ## Phase 4. Minimal Checks for Safe Refactoring
 
-Status: Planned
+Status: In progress on 2026-08-01 in branch `phase-4-minimal-checks`
 
 Objective: create a small but useful safety net.
 
