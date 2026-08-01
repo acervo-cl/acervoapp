@@ -58,6 +58,21 @@ acervoapp/
   docker compose run --rm test
   ```
   This uses a separate Node container and keeps the static app runtime unchanged.
+- **Standard test gate before committing changes:**
+  ```bash
+  docker compose run --rm test npm test
+  docker compose run --rm test npm run test:security
+  docker compose run --rm test npm run test:all
+  ```
+  Use `npm test` for the current unit checks, `npm run test:security` for the repository
+  smoke checks, and `npm run test:all` as the final combined gate before pushing or opening
+  a pull request.
+- **If you already have Node locally and want to run the same checks without Docker:**
+  ```bash
+  npm test
+  npm run test:security
+  npm run test:all
+  ```
 - **Fallback local run path (without Docker):**
   ```bash
   cd app && python3 -m http.server 8080
