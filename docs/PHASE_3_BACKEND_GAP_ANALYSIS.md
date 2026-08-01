@@ -300,10 +300,11 @@ Current execution order:
 
 1. continue the remaining controlled frontend extraction work from `app/index.html`;
 2. stop when the remaining inline code reaches a reasonable rendering-heavy boundary;
-3. only then resume backend/schema versioning work using this document as the starting map;
+3. keep this document as the backend reconstruction reference for the final dedicated backend phase;
 4. if production verification is still required at that point, use read-only human-run commands only.
 
 So this document should now be treated as:
 
 - the backend reconstruction reference;
-- not the next coding task.
+- not the next coding task;
+- input for the final backend/database phase in the engineering plan.

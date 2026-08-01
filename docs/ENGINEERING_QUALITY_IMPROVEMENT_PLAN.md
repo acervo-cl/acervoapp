@@ -144,48 +144,32 @@ Closure requirements:
 - keep one stable checkpoint commit before starting Phase 3;
 - record any intentionally skipped test or environment limitation.
 
-## Phase 3. Remaining Frontend Reduction and Delayed Backend Versioning
+## Phase 3. Remaining Frontend Reduction
 
 Status: Next
 
-Objective: continue reducing the remaining high-risk monolith areas in `app/index.html`, then finish backend reconstruction work after the frontend extraction boundary is clearer.
+Objective: continue reducing the remaining high-risk monolith areas in `app/index.html` until the frontend reaches a cleaner structural boundary.
 
 Tasks:
 
 - Extract the remaining frontend logic still embedded in `app/index.html`, prioritizing by risk and cohesion.
-- Delay production-schema-dependent work until the remaining frontend reduction reaches a reasonable stopping point.
-- Keep the existing repo-only backend gap analysis as the reference for later database work.
-- Only after the frontend extraction pass stabilizes:
-  - identify tables, functions, policies, and columns that are currently missing from versioned SQL;
-  - create migrations or consolidated scripts to cover:
-    - `acervo_state`
-    - `profiles`
-    - `acervo_master`
-    - `shared_causas`
-    - `shared_books`
-    - related RLS functions and policies;
-  - review consistency across existing scripts;
-  - document the correct application order.
+- Stop before broad rendering rewrites or feature-level redesign.
+- Keep the existing repo-only backend gap analysis as deferred reference material for a later phase.
 
 Main risk:
 
-- if frontend extraction continues without control, regressions become more likely;
-- if backend reconstruction keeps being deferred indefinitely, any new environment will remain only a partial reconstruction.
+- if frontend extraction continues without control, regressions become more likely.
 
 Deliverables:
 
 - a smaller and more maintainable `index.html`;
 - additional extracted frontend modules;
-- a more complete schema in versioned files;
-- more precise installation documentation;
-- less dependence on manual dashboard state.
 
 Recommended starting point:
 
 1. continue extracting the remaining non-trivial `index.html` blocks in controlled passes;
 2. stop before broad rendering rewrites or behavior changes;
-3. once the frontend reduction reaches a clean boundary, resume the backend/schema work already mapped in the Phase 3 gap analysis;
-4. only then prepare the exact bootstrap sequence for a new environment.
+3. leave backend/schema reconstruction for a later dedicated phase.
 
 ## Phase 4. Minimal Checks for Safe Refactoring
 
@@ -232,6 +216,43 @@ Deliverables:
 - lower risk from uncontrolled changes;
 - better operational visibility.
 
+## Phase 6. Backend and Database Reconstruction
+
+Status: Planned last phase
+
+Objective: make the system reconstructable without depending on manual Supabase dashboard work.
+
+Tasks:
+
+- identify tables, functions, policies, and columns that are currently missing from versioned SQL;
+- create migrations or consolidated scripts to cover:
+  - `acervo_state`
+  - `profiles`
+  - `acervo_master`
+  - `shared_causas`
+  - `shared_books`
+  - related RLS functions and policies;
+- review consistency across existing scripts;
+- document the correct application order;
+- only use human-run, read-only production verification when strictly needed.
+
+Main risk:
+
+- if this is never completed, any new environment will remain only a partial and fragile reconstruction.
+
+Deliverables:
+
+- a more complete schema in versioned files;
+- more precise installation documentation;
+- less dependence on manual dashboard state.
+
+Recommended starting point:
+
+1. use the existing Phase 3 backend gap analysis as the starting map;
+2. compare repo objects against the real project only through read-only human-run inspection;
+3. produce missing migrations in dependency-safe order;
+4. document the exact bootstrap sequence for a new environment.
+
 ## 6. Recommended Priorities
 
 Recommended execution order:
@@ -240,9 +261,9 @@ Recommended execution order:
 2. Validation checklist and baseline.
 3. Safe frontend modularization.
 4. Additional controlled `index.html` reduction.
-5. Complete database versioning.
-6. Minimal automated checks.
-7. Technical hardening.
+5. Minimal automated checks.
+6. Technical hardening.
+7. Backend and database reconstruction.
 
 Note:
 
@@ -280,6 +301,6 @@ Immediate next block:
 
 1. Close Phase 2 / Phase 2.5 with stable checkpoint commits.
 2. Continue the remaining controlled frontend extraction work from `index.html`.
-3. Resume backend/schema reconstruction only after that frontend reduction reaches a sensible stop point.
-4. Add the first minimal automated checks for extracted pure logic.
-5. Only after that, continue with hardening tasks.
+3. Add the first minimal automated checks for extracted pure logic.
+4. Continue with hardening tasks.
+5. Leave backend/schema reconstruction for the final phase.
