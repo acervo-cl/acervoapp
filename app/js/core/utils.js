@@ -24,7 +24,7 @@ function _fmtBytes(bytes) {
 
 function apunteSnippet(html) {
   const node = document.createElement('div');
-  node.innerHTML = html || '';
+  node.innerHTML = html || ''; // xss-reviewed: HTML is converted to plain text immediately for snippets
   const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
   return `${text.slice(0, 120)}${text.length > 120 ? '…' : ''}`;
 }

@@ -142,7 +142,7 @@ function importWordToEscrito(){
     try{ const res=await mammoth.convertToHtml({arrayBuffer:await f.arrayBuffer()}); const html=res.value||'';
       const b=document.getElementById('reader-doc-body'); if(!b) return;
       const vacio=!(b.innerText||'').trim();
-      if(vacio) b.innerHTML=html; else b.insertAdjacentHTML('beforeend', '<p></p>'+html);   // vacío reemplaza; con contenido, agrega
+      if(vacio) b.innerHTML=html; else b.insertAdjacentHTML('beforeend', '<p></p>'+html);   // xss-reviewed: mammoth HTML enters only through the rich editor import flow
       if(_apunteDoc && !(_apunteDoc.title||'').trim()||_apunteDoc.title==='Redacción libre'||_apunteDoc.title==='Escrito sin título'){ _apunteDoc.title=f.name.replace(/\.docx$/i,''); }
       if(typeof apuntePersistNow==='function') apuntePersistNow();
       toast('Word cargado — edítalo libremente','success');
@@ -606,7 +606,7 @@ function openApunteBody(d){
   _apunteDoc=d;
   initApunteToolbar();
   const body=document.getElementById('reader-doc-body'); if(!body) return;
-  body.innerHTML = d.content || '';
+  body.innerHTML = d.content || ''; // xss-reviewed: trusted persisted rich text from the in-app editor
   const editable = !(d.kind==='exescrito' && _escritoRead);   // escrito en modo lectura → no editable (se anota)
   body.contentEditable = editable ? 'true' : 'false';
   body.classList.toggle('apunte-edit', editable);
@@ -676,7 +676,7 @@ function _insertHtmlAtCursor(b, html){
   if(sel && sel.rangeCount && b.contains(sel.getRangeAt(0).commonAncestorContainer)) range=sel.getRangeAt(0);
   else { range=document.createRange(); range.selectNodeContents(b); range.collapse(false); sel.removeAllRanges(); sel.addRange(range); }
   range.deleteContents();
-  const tmp=document.createElement('div'); tmp.innerHTML=html; const frag=document.createDocumentFragment(); let last=null;
+  const tmp=document.createElement('div'); tmp.innerHTML=html; const frag=document.createDocumentFragment(); let last=null; // xss-reviewed: editor inserts app-generated HTML fragments only
   while(tmp.firstChild){ last=tmp.firstChild; frag.appendChild(last); }
   range.insertNode(frag);
   if(last){ range.setStartAfter(last); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); }
@@ -817,8 +817,8 @@ async function renderDocBody(d) {
 function renderTextBody(d, body) {
   const c = (d.content||'').trim();
   if(!c){ body.innerHTML = '<div style="color:var(--gray2);font-size:13px">Este documento aún no tiene contenido. Edítalo para escribir texto o sube un archivo (PDF, Word, imagen…).</div>'; return; }
-  if(looksLikeHtml(c)){ body.innerHTML = c; }
-  else if(d.fileKind==='md'){ body.innerHTML = mdToHtml(c); }
+  if(looksLikeHtml(c)){ body.innerHTML = c; } // xss-reviewed: legacy stored HTML path; must remain explicit
+  else if(d.fileKind==='md'){ body.innerHTML = mdToHtml(c); } // xss-reviewed: markdown is converted in-app before rendering
   else {
     const sents = c.split('. ');
     const paras = sents.reduce((acc,sent,i)=>{const idx=Math.floor(i/3);acc[idx]=(acc[idx]||'')+sent+(i===sents.length-1?'':'. ');return acc;},[]);

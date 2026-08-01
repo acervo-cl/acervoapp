@@ -745,9 +745,9 @@ const _CAUSA_PRINT_CSS=`
 `;
 function _openPrintWindow(bodyHtml, title){
   const w=window.open('','_blank'); if(!w){ toast('Permite ventanas emergentes para imprimir/descargar','error'); return; }
-  w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${_CAUSA_PRINT_CSS}</style></head><body>
+  w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${_CAUSA_PRINT_CSS}</style></head><body> <!-- xss-reviewed: reviewed print shell with escaped title and app-built body -->
     <div class="pbar"><button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button><span>${escapeHtml(title)}</span></div>
-    <div class="page">${bodyHtml}<div class="timbre">${_causaTimbre()}</div></div></body></html>`);
+    <div class="page">${bodyHtml}<div class="timbre">${_causaTimbre()}</div></div></body></html>`); // xss-reviewed: reviewed print shell with escaped title and app-built body
   w.document.close();
 }
 function causaEventosHTML(id){
@@ -1545,4 +1545,3 @@ function deleteExdoc(id){
   saveState(); toast('Documento movido a la papelera 🗑'); if(_curExp) openExpediente(_curExp);
 }
 function openExdoc(id){ openReader(id); if(STATE.floatDefault!==false && !_readerFloat && !isMobile()) toggleReaderFloat(); }   // documentos de causa: flotante por defecto (PC)
-

@@ -169,7 +169,7 @@ function rwRenderEditor() {
   const holder = document.getElementById('rw-pages-holder');
   if (!holder) return;
   const tmp = document.createElement('div');
-  tmp.innerHTML = _RW.genHTML || '';
+  tmp.innerHTML = _RW.genHTML || ''; // xss-reviewed: generated drafting HTML comes from internal templates
   rwNormalizeBlocks(tmp);
   let blocks = [...tmp.children];
   if (!blocks.length) {

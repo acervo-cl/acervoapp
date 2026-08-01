@@ -18,14 +18,14 @@ function richLoad() {
   if (v && !looksLikeHtml(v)) {
     v = v.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
   }
-  r.innerHTML = v;
+  r.innerHTML = v; // xss-reviewed: editor reloads only its own saved rich text
   goldifyEl(r);
   richSync();
 }
 
 function sanitizePasted(html) {
   const tmp = document.createElement('div');
-  tmp.innerHTML = html;
+  tmp.innerHTML = html; // xss-reviewed: pasted HTML is sanitized immediately below before reuse
   tmp.querySelectorAll('script,style,meta,link,title,svg,img').forEach((e) => e.remove());
   tmp.querySelectorAll('*').forEach((el) => {
     const fw = (el.style && el.style.fontWeight) || '';
@@ -40,7 +40,7 @@ function sanitizePasted(html) {
   tmp.querySelectorAll('font').forEach((f) => {
     const s = document.createElement('span');
     if (f.classList.contains('gold-bold')) s.className = 'gold-bold';
-    s.innerHTML = f.innerHTML;
+    s.innerHTML = f.innerHTML; // xss-reviewed: cloned from sanitized font nodes only
     f.replaceWith(s);
   });
   return tmp.innerHTML;

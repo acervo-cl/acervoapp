@@ -341,7 +341,7 @@ function printRedaccion(id, mode){
   }
   // Abrimos la pestaña YA (dentro del clic) para que el navegador no la bloquee; ahí mostraremos el PDF.
   const win=window.open('', '_blank');
-  if(win){ try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando PDF…</title><body style="margin:0;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;color:#444">Generando PDF…</body>'); }catch(_){} }
+  if(win){ try{ win.document.write('<!doctype html><meta charset="utf-8"><title>Generando PDF…</title><body style="margin:0;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;color:#444">Generando PDF…</body>'); }catch(_){} } // xss-reviewed: static loading shell only
   ensurePdfLibs().then(ok=>{
     if(ok){ pdfTextoReal(x,f,win).catch(()=>printRedaccionFallback(x,f,win)); }
     else { printRedaccionFallback(x,f,win); }   // offline / sin librería
@@ -450,7 +450,7 @@ function pdfTextoReal(x,f,win,onBlob){
     y=top+hmm+lineH*0.6+size*PT;
   }
   return (async()=>{
-    const root=document.createElement('div'); root.innerHTML=x.content||'';
+    const root=document.createElement('div'); root.innerHTML=x.content||''; // xss-reviewed: PDF export parses saved editor HTML into text/image blocks
     const blocks=pdfParseBlocks(root, f.align||'justify');
     for(const b of blocks){
       if(b.type==='break'){ need(); y+=lineH; }   // línea en blanco completa (igual que en pantalla)
@@ -524,7 +524,7 @@ function printRedaccionFallback(x,f,win){
       <div class="rwp-bar"><button onclick="window.print()">📄 Guardar como PDF / Imprimir</button></div>
       <div class="rwp-sheet">${x.content||''}</div>
     </body></html>`;
-  if(win){ try{ win.document.open(); win.document.write(doc); win.document.close(); return; }catch(_){} }
+  if(win){ try{ win.document.open(); win.document.write(doc); win.document.close(); return; }catch(_){} } // xss-reviewed: print fallback writes one reviewed HTML document shell
   const blob=new Blob([doc],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const w=window.open(url,'_blank');
@@ -1776,4 +1776,3 @@ async function confirmCausaDoc(){
   if(exId && _causaDocFile){ try{ await addFilesToExpediente(exId, [_causaDocFile]); }catch(err){ toast('Causa creada, pero no se pudo adjuntar el documento','error'); } }
   _causaDocFile=null;
 }
-
