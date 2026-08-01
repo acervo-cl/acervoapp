@@ -7,6 +7,17 @@ function materiaOptions(sel, conGeneral){
 }
 function fillMateriaSelect(id,val,conGeneral){ const el=document.getElementById(id); if(el) el.innerHTML=materiaOptions(val,conGeneral); }
 
+const ESTRUCT_JUDICIAL="{{suma}}\n\n\n{{tribunal}}\n\n\n{{compareciente}} en autos sobre {{causa}}, a U.S., respetuosamente digo:\n\n{{cuerpo}}\n\n{{portanto}}\n\n{{otrosies}}";
+const ESTRUCT_DOCUMENTAL="{{encabezado}}\n\n{{cuerpo}}\n\n{{pie}}";
+const TIPOSDOC_DEFAULT=[
+  {id:'escrito', nombre:'Escritos', icono:'📝', motor:'judicial', piezaLabel:'Peticiones', estructura:ESTRUCT_JUDICIAL, usaMembrete:false, builtin:true, enCausa:true, paraTodos:false, desc:'Téngase presente, acompaña, reposición, audiencia…'},
+  {id:'demanda', nombre:'Demandas / Recursos', icono:'⚖️', motor:'judicial', piezaLabel:'Demandas', estructura:ESTRUCT_JUDICIAL, usaMembrete:false, builtin:true, enCausa:false, paraTodos:false, desc:'Inicia la causa. En lo principal la demanda + otrosíes.'},
+  {id:'contrato', nombre:'Contratos', icono:'📜', motor:'documental', piezaLabel:'Tipos de contrato', estructura:ESTRUCT_DOCUMENTAL, usaMembrete:true, builtin:true, enCausa:false, paraTodos:false, desc:'Entre partes (clientes). Próximamente.'},
+  {id:'extra', nombre:'Extra', icono:'✚', motor:'documental', piezaLabel:'Modelos', estructura:ESTRUCT_DOCUMENTAL, usaMembrete:true, builtin:true, enCausa:false, paraTodos:false, desc:'Tus modelos propios de documento. Próximamente.'},
+];
+const PARTES_CAT={ presuma:'Presuma (recuadro de datos)', titulo:'Título (la suma / encabezado)', tribunal:'Tribunal', comparecencia:'Comparecencia', cuerpo:'Cuerpo (la pieza principal)', portanto:'Por tanto', otrosies:'Otrosíes', pie:'Pie / firmas' };
+const PARTES_CAT_DOC={ titulo:'Encabezado / comparecencia de las partes', cuerpo:'Cláusulas (cuerpo del contrato)', pie:'Firmas / cierre' };
+
 const ROLES_PROC_DEFAULT=['demandante','demandada','querellante','querellada','imputada','solicitante','requerido'];
 function rolesProcesales(){ const r=STATE.rolesProcesales; return (Array.isArray(r)&&r.length)?r:ROLES_PROC_DEFAULT.slice(); }
 function rolOptions(sel){ return rolesProcesales().map(r=>`<option ${String(sel||'')===r?'selected':''}>${escapeHtml(r)}</option>`).join(''); }
