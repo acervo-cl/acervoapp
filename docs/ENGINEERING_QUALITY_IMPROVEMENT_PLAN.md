@@ -11,12 +11,13 @@ Scope: Improve quality, maintainability, reproducibility, and security without a
 - Phase 1 Docker-based local reproducibility completed.
 - Phase 2 frontend modularization implemented and manually validated in the local Docker environment.
 - Phase 2.5 additional `index.html` reduction completed in three controlled extraction passes.
-- Phase 3.5 JS folder organization is defined as a follow-up cleanup after the main frontend extraction.
+- Phase 3.5 JS folder organization completed.
 - Phase 2 closure documents created:
   - `docs/PHASE_2_REGRESSION_CHECKLIST.md`
   - `docs/TEST_PLAN_PHASE_2.md`
-- Phase 3 will continue with remaining frontend extraction work before backend/schema reconstruction.
-- Phase 4 automated checks are defined but not yet implemented.
+- Phase 3 frontend reduction completed in controlled extraction passes.
+- Phase 4 minimal automated checks completed on 2026-08-01.
+- Phase 5 will continue frontend architecture cleanup before backend/schema reconstruction.
 
 ## 1. Objective
 
@@ -147,7 +148,7 @@ Closure requirements:
 
 ## Phase 3. Remaining Frontend Reduction
 
-Status: Next
+Status: Completed on 2026-08-01
 
 Objective: continue reducing the remaining high-risk monolith areas in `app/index.html` until the frontend reaches a cleaner structural boundary.
 
@@ -174,7 +175,7 @@ Recommended starting point:
 
 ## Phase 4. Minimal Checks for Safe Refactoring
 
-Status: In progress on 2026-08-01 in branch `phase-4-minimal-checks`
+Status: Completed on 2026-08-01 in branch `phase-4-minimal-checks`
 
 Objective: create a small but useful safety net.
 
@@ -198,7 +199,7 @@ Deliverables:
 
 ## Phase 3.5. JS Folder Organization
 
-Status: In progress
+Status: Completed on 2026-08-01
 
 Objective: organize the extracted frontend scripts into domain folders so the codebase is easier to navigate and maintain.
 
@@ -215,26 +216,32 @@ Deliverables:
 - updated script references;
 - a small validation pass for broken paths or missing globals.
 
-## Phase 5. Operational and Technical Hardening
+## Phase 5. Frontend Architecture Cleanup
 
-Status: Planned
+Status: In progress on 2026-08-01 in branch `phase-5-frontend-architecture`
 
-Objective: reduce maintenance and production risk.
+Objective: finish the remaining frontend structural cleanup so the app is easier to maintain before any backend/database reconstruction work begins.
 
 Tasks:
 
-- Pin external versions where they are currently too open-ended.
-- Review CORS and validations in Edge Functions.
-- Review the Service Worker cache strategy.
-- Centralize non-secret sensitive configuration.
-- Improve consistency in technical documentation.
-- Evaluate linting and formatting with the minimum useful tooling.
+- identify the largest remaining frontend blocks still embedded in `app/index.html`;
+- extract them into cohesive domain files in larger, deliberate slices;
+- reduce global coupling where a small boundary/helper can isolate behavior safely;
+- keep behavior unchanged and avoid backend or schema work;
+- preserve current script load order and runtime expectations unless a safer boundary is clearly justified.
 
 Deliverables:
 
-- less implicit behavior;
-- lower risk from uncontrolled changes;
-- better operational visibility.
+- a smaller and clearer `app/index.html`;
+- fewer oversized mixed-responsibility frontend blocks;
+- an updated structural map of what still remains embedded after Phase 5.
+
+Non-goals:
+
+- no database migration or Supabase reconstruction work;
+- no feature additions;
+- no framework migration;
+- no broad UI redesign.
 
 ## Phase 6. Backend and Database Reconstruction
 
@@ -282,7 +289,7 @@ Recommended execution order:
 3. Safe frontend modularization.
 4. Additional controlled `index.html` reduction.
 5. Minimal automated checks.
-6. Technical hardening.
+6. Remaining frontend architecture cleanup.
 7. Backend and database reconstruction.
 
 Note:
@@ -319,8 +326,8 @@ The original first block has already been executed:
 
 Immediate next block:
 
-1. Close Phase 2 / Phase 2.5 with stable checkpoint commits.
-2. Continue the remaining controlled frontend extraction work from `index.html`.
-3. Add the first minimal automated checks for extracted pure logic.
-4. Continue with hardening tasks.
+1. Use the new Phase 5 branch for the remaining frontend architecture cleanup.
+2. Extract larger remaining `index.html` blocks in controlled slices.
+3. Keep using the Dockerized test gate after each meaningful frontend cut.
+4. Record the residual embedded areas that should remain for the final frontend pass, if any.
 5. Leave backend/schema reconstruction for the final phase.
