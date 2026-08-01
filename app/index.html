@@ -3717,19 +3717,8 @@ function cxFromExpediente(e){
 <script>
 </script>
 <script src="js/library/subject-delete.js"></script>
+<script src="js/core/toast.js"></script>
 <script>
-// ════════════════════════════════════════
-// TOASTS
-// ════════════════════════════════════════
-function toast(msg, type='') {
-  const c = document.getElementById('toast-container');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `${type==='success'?'✓':type==='error'?'✕':'ℹ'} ${msg}`;
-  c.appendChild(el);
-  setTimeout(()=>el.remove(), 3000);
-}
-
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
