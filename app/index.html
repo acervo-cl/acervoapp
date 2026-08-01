@@ -2577,6 +2577,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <script src="js/cases/collaboration-config.js"></script>
 <script src="js/cases/backup-transfer.js"></script>
 <script src="js/admin/admin-library-viewer.js"></script>
+<script src="js/core/seed-data.js"></script>
 <script src="js/library/dashboard-home.js"></script>
 <script src="js/library/right-rail.js"></script>
 <script src="js/library/agenda-calendar.js"></script>
@@ -2594,87 +2595,6 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 // ════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════
-const SUBJECTS = [
-  {id:'civil',  name:'Derecho Civil',       icon:'⚖️', color:'#3B82F6', progress:100, desc:'Contratos, familia, sucesiones y obligaciones civiles.'},
-  {id:'penal',  name:'Derecho Penal',       icon:'🔒', color:'#EF4444', progress:65,  desc:'Teoría del delito, tipicidad, antijuridicidad, culpabilidad e iter criminis.'},
-  {id:'procesal',name:'Procesal Civil',     icon:'📋', color:'#8B5CF6', progress:40,  desc:'Recursos procesales, juicio ordinario y medidas cautelares.'},
-  {id:'laboral', name:'Derecho Laboral',    icon:'🏭', color:'#10B981', progress:0,   desc:'Contrato de trabajo, derechos del trabajador, fuero laboral y despido.'},
-  {id:'mercantil',name:'Derecho Mercantil', icon:'💼', color:'#F59E0B', progress:30,  desc:'Sociedades comerciales, títulos de crédito y actos de comercio.'},
-  {id:'const',  name:'D. Constitucional',  icon:'📜', color:'#EC4899', progress:100, desc:'Garantías constitucionales, órganos del Estado y recursos de amparo y protección.'},
-  {id:'admin',  name:'D. Administrativo',  icon:'🏛️', color:'#06B6D4', progress:10,  desc:'Acto administrativo, principios, invalidación, revocación y procedimiento.'},
-];
-
-const DOCUMENTS = [
-  {id:'d01',title:'Teoría General del Contrato',subject:'civil',pages:42,type:'PDF',progress:100,status:'done',lastAccess:'hace 2 días',annCount:3,
-   tags:['contratos','obligaciones','consentimiento','vicios'],
-   summary:'Elementos esenciales, vicios del consentimiento, clasificación de contratos, efectos y extinción.',
-   content:'La teoría general del contrato estudia los elementos esenciales de todo acuerdo jurídico vinculante. Los contratos requieren capacidad de las partes, consentimiento libre y espontáneo, objeto lícito y causa lícita. El contrato es ley para las partes según el artículo 1545 del Código Civil. La teoría de los vicios del consentimiento incluye el error, la fuerza y el dolo. Los contratos pueden ser unilaterales o bilaterales, onerosos o gratuitos, conmutativos o aleatorios. La rescisión procede por lesión enorme en los contratos de compraventa y permuta de bienes raíces. El incumplimiento del contrato genera responsabilidad contractual.'},
-  {id:'d02',title:'Derecho de Familia',subject:'civil',pages:67,type:'PDF',progress:100,status:'done',lastAccess:'hace 1 semana',annCount:8,
-   tags:['matrimonio','filiación','tuición','alimentos','divorcio'],
-   summary:'Matrimonio, nulidad, divorcio, filiación, alimentos, tuición y régimen patrimonial.',
-   content:'El derecho de familia regula las relaciones jurídicas entre cónyuges y parientes. El matrimonio es un contrato solemne entre un hombre y una mujer. Las causales de nulidad matrimonial son taxativas. La filiación puede ser matrimonial o no matrimonial y determina derechos sucesorios y de alimentos. La tuición preferente corresponde a la madre hasta los 5 años salvo inhabilidad. El divorcio puede ser de mutuo acuerdo o unilateral con plazos distintos. Los alimentos son irrenunciables mientras sean futuros. El régimen patrimonial por defecto es la sociedad conyugal.'},
-  {id:'d03',title:'Sucesiones y Testamentos',subject:'civil',pages:38,type:'PDF',progress:100,status:'done',lastAccess:'hace 1 semana',annCount:2,
-   tags:['herencia','testamento','legitimarios','acervos','legítima'],
-   summary:'Sucesión testada e intestada, legitimarios, legítimas, testamento y acervo imaginario.',
-   content:'El derecho sucesorio regula la transmisión del patrimonio por causa de muerte. Hay sucesión testada e intestada. Los legitimarios son los asignatarios forzosos: hijos, cónyuge sobreviviente y ascendientes. La legítima rigorosa es la mitad del acervo imaginario. El testamento es un acto jurídico unilateral, solemne, personalísimo y esencialmente revocable. La acción de reforma de testamento protege a los legitimarios preteridos. El primer orden de sucesión intestada corresponde a los hijos.'},
-  {id:'d04',title:'Obligaciones Civiles',subject:'civil',pages:55,type:'PDF',progress:100,status:'done',lastAccess:'hace 3 días',annCount:5,
-   tags:['obligaciones','mora','incumplimiento','responsabilidad','extinción'],
-   summary:'Clasificación de obligaciones, responsabilidad, mora, modos de extinción.',
-   content:'Las obligaciones son vínculos jurídicos que imponen el deber de dar, hacer o no hacer. La responsabilidad civil contractual requiere incumplimiento, daño, imputabilidad y relación causal. La mora del deudor surge del retardo culpable con interpelación. Los modos de extinción de las obligaciones incluyen el pago, la compensación, la novación, la remisión, la confusión y la prescripción extintiva. Las obligaciones pueden ser solidarias o simplemente conjuntas. El caso fortuito exime de responsabilidad cuando cumple los requisitos legales.'},
-  {id:'d05',title:'Tipicidad y Antijuridicidad',subject:'penal',pages:51,type:'PDF',progress:65,status:'progress',lastAccess:'ayer',annCount:5,
-   tags:['tipicidad','antijuridicidad','dolo','culpa','causas de justificación','error de tipo'],
-   summary:'Tipicidad objetiva y subjetiva, antijuridicidad, causas de justificación, error de tipo.',
-   content:'La tipicidad es la adecuación de una conducta al tipo penal descrito en la ley. Requiere elementos objetivos como la conducta, el resultado y el nexo causal, y elementos subjetivos como el dolo o la culpa. La antijuridicidad implica que la conducta típica no esté amparada por causa de justificación: legítima defensa, estado de necesidad justificante, cumplimiento de deber y ejercicio de derecho. El error de tipo invencible elimina toda responsabilidad penal. El error de tipo vencible subsiste como culpa. La teoría de la imputación objetiva de Roxin exige un riesgo jurídicamente desaprobado que se realice en el resultado típico. La estructura tripartita del delito es tipicidad, antijuridicidad y culpabilidad.'},
-  {id:'d06',title:'Culpabilidad e Imputabilidad',subject:'penal',pages:38,type:'PDF',progress:50,status:'progress',lastAccess:'hace 3 días',annCount:2,
-   tags:['culpabilidad','imputabilidad','error de prohibición','inimputabilidad'],
-   summary:'Culpabilidad, imputabilidad, error de prohibición, causas de exculpación.',
-   content:'La culpabilidad es el juicio de reproche personal dirigido al autor de un hecho típico y antijurídico. Requiere imputabilidad, conocimiento de la antijuridicidad y exigibilidad de otra conducta. La imputabilidad supone madurez psíquica y salud mental. Las causales de inimputabilidad incluyen la enajenación mental y la minoría de edad. El error de prohibición puede ser invencible, que excluye la culpabilidad, o vencible, que atenúa la pena. Las causales de exculpación incluyen el miedo insuperable y la fuerza irresistible moral.'},
-  {id:'d07',title:'Iter Criminis',subject:'penal',pages:22,type:'PDF',progress:0,status:'pending',lastAccess:null,annCount:0,
-   tags:['iter criminis','tentativa','frustración','consumación','desistimiento'],
-   summary:'Fases del delito, tentativa, frustración, consumación y desistimiento.',
-   content:'El iter criminis describe el camino del delito desde la ideación hasta la consumación. Las etapas son: ideación, resolución, preparación, ejecución y consumación. La tentativa requiere inicio de ejecución sin completar el delito por causas ajenas al autor. La frustración supone ejecución completa pero el resultado no se produce. El desistimiento voluntario exime de pena en la tentativa. La conspiración y la proposición son punibles solo cuando la ley expresamente lo establece.'},
-  {id:'d08',title:'Recursos Procesales',subject:'procesal',pages:44,type:'PDF',progress:40,status:'progress',lastAccess:'hace 5 días',annCount:1,
-   tags:['apelación','casación','reposición','recurso de nulidad','impugnación'],
-   summary:'Reposición, apelación, casación forma y fondo, nulidad penal.',
-   content:'Los recursos procesales son los medios de impugnación de las resoluciones judiciales. El recurso de reposición procede contra autos y decretos. La apelación procede contra sentencias interlocutorias y definitivas de primera instancia. El recurso de casación puede ser en la forma por vicios formales o en el fondo por infracción de ley que influye sustancialmente en la decisión. El recurso de nulidad propio del proceso penal reemplaza la casación en materia criminal. El recurso de queja procede contra las faltas o abusos graves de los jueces.'},
-  {id:'d09',title:'Juicio Ordinario',subject:'procesal',pages:48,type:'PDF',progress:5,status:'pending',lastAccess:null,annCount:0,
-   tags:['demanda','contestación','prueba','sentencia','término probatorio'],
-   summary:'Etapas del juicio ordinario, plazos, medios de prueba.',
-   content:'El juicio ordinario de mayor cuantía es el procedimiento civil general supletorio. Sus etapas son: discusión, conciliación, prueba, observaciones y sentencia. Los plazos son 15 días para contestar la demanda y 6 días para réplica y dúplica. El término probatorio ordinario es de 20 días. Los medios de prueba incluyen instrumentos, testigos, confesión, peritos, inspección y presunciones. La conciliación es obligatoria y el juez debe promoverla activamente. El incidente es toda cuestión accesoria al juicio que requiere especial pronunciamiento.'},
-  {id:'d10',title:'Garantías Constitucionales',subject:'const',pages:63,type:'PDF',progress:100,status:'done',lastAccess:'hace 2 semanas',annCount:4,
-   tags:['recurso de protección','recurso de amparo','derechos fundamentales','artículo 19'],
-   summary:'Art. 19 CPR, recurso de protección, recurso de amparo, núcleo esencial.',
-   content:'El artículo 19 de la Constitución Política de la República enumera los derechos fundamentales garantizados. El recurso de protección del artículo 20 ampara los derechos esencialmente patrimoniales y protege contra actos u omisiones arbitrarios o ilegales. El recurso de amparo del artículo 21 protege la libertad personal y seguridad individual. El plazo para interponer el recurso de protección es de 30 días desde el acto u omisión. Las garantías constitucionales no son absolutas y admiten limitaciones por ley respetando su núcleo esencial.'},
-  {id:'d11',title:'Órganos del Estado',subject:'const',pages:44,type:'PDF',progress:100,status:'done',lastAccess:'hace 2 semanas',annCount:3,
-   tags:['ejecutivo','legislativo','judicial','Tribunal Constitucional','Contraloría'],
-   summary:'Ejecutivo, legislativo, judicial, TC, Contraloría, separación de poderes.',
-   content:'La Constitución establece los órganos del Estado: Presidente de la República como jefe del ejecutivo, el Congreso Nacional como poder legislativo y el Poder Judicial. El Congreso es bicameral con el Senado de 50 senadores por 8 años y la Cámara de Diputados de 155 diputados por 4 años. El Tribunal Constitucional controla la constitucionalidad de las leyes. La Contraloría General de la República ejerce el control preventivo de legalidad de los actos de la Administración mediante la toma de razón.'},
-  {id:'d12',title:'Sociedades Mercantiles',subject:'mercantil',pages:58,type:'PDF',progress:30,status:'progress',lastAccess:'hace 1 semana',annCount:0,
-   tags:['sociedad anónima','ltda','SpA','directorio','responsabilidad de socios'],
-   summary:'Tipos de sociedades, SA, Ltda, SpA, responsabilidad, administración.',
-   content:'Las sociedades mercantiles son personas jurídicas creadas para ejercer el comercio. La sociedad colectiva implica que todos los socios responden ilimitadamente. La sociedad de responsabilidad limitada hace que los socios respondan solo hasta su aporte. La sociedad anónima tiene el capital dividido en acciones y la responsabilidad se limita al aporte. La SpA o sociedad por acciones puede ser unipersonal. La sociedad anónima abierta está sujeta a la CMF. El directorio administra la SA y sus miembros responden solidariamente de los perjuicios causados.'},
-  {id:'d13',title:'Títulos de Crédito',subject:'mercantil',pages:41,type:'PDF',progress:0,status:'pending',lastAccess:null,annCount:0,
-   tags:['letra de cambio','pagaré','cheque','literalidad','autonomía'],
-   summary:'Letra de cambio, pagaré, cheque, características y acción cambiaria.',
-   content:'Los títulos de crédito son documentos que incorporan un derecho literal y autónomo. Sus características esenciales son la literalidad, la autonomía, la abstracción y la incorporación. La letra de cambio requiere la mención de ser letra de cambio, fecha, monto, beneficiario, librador y lugar de pago. El pagaré es una promesa directa e incondicional de pago. El cheque es una orden de pago a la vista contra un banco. La acción cambiaria para cobrar estos documentos prescribe en un año.'},
-  {id:'d14',title:'Contrato Individual de Trabajo',subject:'laboral',pages:29,type:'PDF',progress:0,status:'pending',lastAccess:null,annCount:0,
-   tags:['contrato de trabajo','subordinación','dependencia','remuneración','despido','fuero'],
-   summary:'Elementos esenciales, subordinación, remuneración, terminación y fuero laboral.',
-   content:'El contrato individual de trabajo es la convención por la que el empleador y el trabajador se obligan recíprocamente. El trabajador presta servicios bajo dependencia y subordinación a cambio de una remuneración. Los elementos esenciales son la prestación de servicios, la subordinación y la remuneración. El contrato debe constar por escrito. El empleador puede despedir invocando alguna causal legal o sin expresar causa con obligación de pagar indemnización. El fuero laboral protege a ciertos trabajadores de la terminación unilateral del contrato.'},
-  {id:'d15',title:'Acto Administrativo',subject:'admin',pages:33,type:'PDF',progress:10,status:'progress',lastAccess:'hace 1 semana',annCount:0,
-   tags:['acto administrativo','invalidación','revocación','toma de razón','principio de legalidad'],
-   summary:'Elementos del acto, invalidación, revocación, impugnación, principios.',
-   content:'El acto administrativo es la decisión formal que emite la Administración del Estado en el ejercicio de sus potestades. Sus elementos son la competencia del órgano, la finalidad pública, la forma y el procedimiento. Los principios que rigen el acto administrativo incluyen la legalidad, la impugnabilidad, la transparencia y la eficiencia. La invalidación procede por ilegalidad y puede declararla el propio órgano emisor. La revocación procede por razones de mérito y extingue el acto hacia el futuro. El recurso de reposición es el medio de impugnación principal en sede administrativa.'},
-];
-
-let ANNOTATIONS = [
-  {id:'a01',docId:'d05',text:'Ver art. 1437 CC para comparar con el elemento subjetivo en materia civil. Diferencia clave con el dolo civil.',type:'importante',date:'hace 2 días',par:2},
-  {id:'a02',docId:'d05',text:'¿Cómo se distingue la legítima defensa del estado de necesidad? Revisar Garrido Montt, cap. 6.',type:'duda',date:'ayer',par:3},
-  {id:'a03',docId:'d05',text:'Estructura tripartita: tipicidad → antijuridicidad → culpabilidad. Esto entra seguro en el examen.',type:'importante',date:'ayer',par:5},
-  {id:'a04',docId:'d10',text:'El plazo de 30 días del recurso de protección es fatal y se cuenta desde que el afectado toma conocimiento.',type:'importante',date:'hace 3 días',par:1},
-  {id:'a05',docId:'d02',text:'El divorcio unilateral requiere cese de convivencia de 3 años. El de mutuo acuerdo, 1 año.',type:'importante',date:'hace 5 días',par:2},
-];
-
 // Apuntes: páginas editables del usuario (como libros, pero se escriben en vivo; admiten notas-círculo)
 let APUNTES = [];
 let _apTimer = null;
