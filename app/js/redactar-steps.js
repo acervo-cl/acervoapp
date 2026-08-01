@@ -28,7 +28,7 @@ function renderRW() {
   else if (_RW.step === 'escritos') inner = rwStepEscritos();
   else inner = rwStepGenerar();
   const titulo = _RW.tipoDoc ? `· ${tipoNombre(_RW.tipoDoc) || ''}` : '';
-  const head = `<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">✍️ Redactar ${titulo} <span style="display:flex;gap:6px"><button class="rw-x" onclick="openHerramientas('rw','cifras')" title="Herramientas (copiar datos · cifras)" style="font-size:15px">🛠️</button><button class="rw-x" onclick="rwClose()">✕</button></span></div>
+  const head = `<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px">✍️ Redactar ${titulo} <span class="rw-head-actions"><button class="rw-head-btn" onclick="openHerramientas('rw','cifras')" title="Herramientas (copiar datos · cifras)" style="font-size:15px">🛠️</button><button class="rw-head-btn" onclick="rwClose()" title="Cerrar" aria-label="Cerrar">✕</button></span></div>
     <div class="rw-steps">${dots}</div>`;
   if (_RW.step === 'generar') {
     body.innerHTML = head + inner;
