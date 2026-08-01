@@ -1,8 +1,20 @@
 # Engineering Quality Improvement Plan for Acervo
 
 Date: 2026-07-31
-Status: Proposed before implementation
+Last updated: 2026-08-01
+Status: In progress
 Scope: Improve quality, maintainability, reproducibility, and security without adding new features
+
+## Current Implementation Status
+
+- Phase 0 baseline documents created.
+- Phase 1 Docker-based local reproducibility completed.
+- Phase 2 frontend modularization implemented and manually validated in the local Docker environment.
+- Phase 2 closure documents created:
+  - `docs/PHASE_2_REGRESSION_CHECKLIST.md`
+  - `docs/TEST_PLAN_PHASE_2.md`
+- Phase 3 backend/schema reconstruction is the next implementation priority.
+- Phase 4 automated checks are defined but not yet implemented.
 
 ## 1. Objective
 
@@ -60,6 +72,8 @@ Deliverables:
 
 ## Phase 1. Local Reproducibility with Docker
 
+Status: Completed on 2026-08-01
+
 Objective: make it possible to run the app locally in a simple and consistent way.
 
 Tasks:
@@ -86,6 +100,8 @@ Deliverables:
 - documented instructions
 
 ## Phase 2. Safe Frontend Modularization
+
+Status: Implemented on 2026-08-01, pending final closure checkpoint
 
 Objective: reduce the risk of the single-file frontend without changing features.
 
@@ -121,7 +137,15 @@ Deliverables:
 - a smaller and easier-to-read `index.html`;
 - behavior equivalent to the current app.
 
+Closure requirements:
+
+- run the full Phase 2 regression checklist;
+- keep one stable checkpoint commit before starting Phase 3;
+- record any intentionally skipped test or environment limitation.
+
 ## Phase 3. Real Backend and Database Versioning
+
+Status: Next
 
 Objective: make the system reconstructable without depending on manual Supabase dashboard work.
 
@@ -148,7 +172,16 @@ Deliverables:
 - more precise installation documentation;
 - less dependence on manual dashboard state.
 
+Recommended starting point:
+
+1. inventory the current SQL files and Supabase objects already versioned;
+2. compare them against the real project tables, policies, buckets, and functions;
+3. produce missing migrations in dependency-safe order;
+4. document the exact bootstrap sequence for a new environment.
+
 ## Phase 4. Minimal Checks for Safe Refactoring
+
+Status: Planned
 
 Objective: create a small but useful safety net.
 
@@ -171,6 +204,8 @@ Deliverables:
 - a base for increasing coverage where it actually brings value.
 
 ## Phase 5. Operational and Technical Hardening
+
+Status: Planned
 
 Objective: reduce maintenance and production risk.
 
@@ -225,11 +260,16 @@ We should consider this initiative successful if:
 
 ## 9. Immediate Implementation Proposal
 
-Implementation should begin with this first block:
+The original first block has already been executed:
 
 1. Add basic Docker support to serve the app.
 2. Document the local Docker workflow.
 3. Define a manual validation checklist.
 4. Prepare the extraction of JavaScript from `index.html` in small cuts.
 
-This first block delivers fast value, reduces friction, and leaves the project well positioned for the more delicate changes that come next.
+Immediate next block:
+
+1. Close Phase 2 with the regression checklist and a stable checkpoint commit.
+2. Audit the real Supabase backend against the repository SQL.
+3. Add the first minimal automated checks for extracted pure logic.
+4. Only after that, continue with hardening tasks.
