@@ -33,7 +33,10 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req).then(res => {
-        caches.open(CACHE).then(c => c.put('./index.html', res.clone()));
+        const cached = res.clone();
+        e.waitUntil(
+          caches.open(CACHE).then(c => c.put('./index.html', cached))
+        );
         return res;
       }).catch(() => caches.match('./index.html'))
     );
@@ -44,8 +47,10 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
       if (res && res.status === 200 && (url.protocol === 'https:' || url.protocol === 'http:')) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
+        const cached = res.clone();
+        e.waitUntil(
+          caches.open(CACHE).then(c => c.put(req, cached))
+        );
       }
       return res;
     }).catch(() => hit))
