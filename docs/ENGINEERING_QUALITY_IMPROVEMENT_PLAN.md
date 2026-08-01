@@ -11,6 +11,7 @@ Scope: Improve quality, maintainability, reproducibility, and security without a
 - Phase 1 Docker-based local reproducibility completed.
 - Phase 2 frontend modularization implemented and manually validated in the local Docker environment.
 - Phase 2.5 additional `index.html` reduction completed in three controlled extraction passes.
+- Phase 3.5 JS folder organization is defined as a follow-up cleanup after the main frontend extraction.
 - Phase 2 closure documents created:
   - `docs/PHASE_2_REGRESSION_CHECKLIST.md`
   - `docs/TEST_PLAN_PHASE_2.md`
@@ -194,6 +195,25 @@ Deliverables:
 
 - a minimum set of repeatable checks;
 - a base for increasing coverage where it actually brings value.
+
+## Phase 3.5. JS Folder Organization
+
+Status: In progress
+
+Objective: organize the extracted frontend scripts into domain folders so the codebase is easier to navigate and maintain.
+
+Tasks:
+
+- group scripts by domain under `app/js`;
+- preserve current load order and current global runtime behavior;
+- update `index.html` script paths only;
+- avoid logic changes while moving files.
+
+Deliverables:
+
+- a domain-based `app/js` folder structure;
+- updated script references;
+- a small validation pass for broken paths or missing globals.
 
 ## Phase 5. Operational and Technical Hardening
 
