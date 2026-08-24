@@ -1701,6 +1701,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 @media print{ body.printing > *{display:none !important} body.printing #print-area{display:block !important} }
 #print-area{display:none}
 </style>
+<link rel="stylesheet" href="css/access-request.css">
 </head>
 <body>
 
@@ -1729,6 +1730,18 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
     <button class="login-btn" id="login-btn" onclick="doLogin()">INGRESAR →</button>
     <div class="login-hint" style="color:var(--gray2)">Acceso solo por invitación · pide tu cuenta al administrador</div>
     <div class="login-hint" style="margin-top:8px"><a href="#" onclick="forgotPassword(event)" style="color:var(--gray2);text-decoration:underline">¿Olvidaste tu contraseña?</a></div>
+    <div class="rsv-wrap">
+      <div class="rsv-line">¿No tienes invitación?</div>
+      <button type="button" class="btn-rsv" onclick="openReservaAcceso()">Reservar acceso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOJA: RESERVAR ACCESO ══ -->
+<div id="rsv-back" aria-hidden="true">
+  <div class="rsv-sheet" role="dialog" aria-modal="true" aria-labelledby="rsv-dialog-title">
+    <button type="button" class="rsv-x" data-rsv-action="close" title="Cerrar" aria-label="Cerrar">✕</button>
+    <div id="rsv-content"></div>
   </div>
 </div>
 
@@ -2571,6 +2584,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <script src="js/admin/admin-permissions.js"></script>
 <script src="js/admin/admin-users.js"></script>
 <script src="js/core/auth.js"></script>
+<script type="module" src="js/core/access-request.js"></script>
 <script src="js/core/realtime.js"></script>
 <script src="js/drafting/editor-core.js"></script>
 <script src="js/admin/template-admin.js"></script>

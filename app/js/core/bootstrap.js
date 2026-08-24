@@ -41,6 +41,7 @@ const _authStorage = {
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storage: _authStorage },
 });
+window.acervoSupabase = sb;
 
 function _setAppVH() {
   try {

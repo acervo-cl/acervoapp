@@ -1,0 +1,78 @@
+.rsv-wrap{margin-top:22px;padding-top:18px;border-top:1px solid rgba(201,168,76,.15);text-align:center}
+.rsv-line{font-size:11px;color:var(--gray2);letter-spacing:.5px;margin-bottom:10px}
+.btn-rsv{background:transparent;border:1px solid rgba(201,168,76,.45);color:var(--gold2);border-radius:10px;padding:11px 18px;font-size:12px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;width:100%;font-family:inherit;transition:background .2s,border-color .2s,transform .12s,color .2s}
+.btn-rsv:hover{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold3);transform:translateY(-1px)}
+.btn-rsv:focus-visible,.rsv-x:focus-visible,.rsv-toggle:focus-visible,.rsv-opt:focus-visible,.rsv-send:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+#rsv-back{position:fixed;inset:0;background:rgba(6,12,22,.55);display:none;z-index:620;align-items:flex-start;justify-content:center;overflow-y:auto;padding:34px 18px 60px;-webkit-overflow-scrolling:touch}
+#rsv-back.open{display:flex;animation:rsvFade .3s ease both}
+@keyframes rsvFade{from{opacity:0}to{opacity:1}}
+#login-screen.rsv-blur .login-card,#login-screen.rsv-blur .login-bg,#login-screen.rsv-blur .login-grid{filter:blur(7px) saturate(.8);transition:filter .4s ease}
+
+.rsv-sheet{position:relative;width:100%;max-width:640px;background:#FBF8F1;color:#14161A;box-shadow:0 40px 90px rgba(0,0,0,.55);padding:44px 52px 40px;border-radius:2px;font-family:'Segoe UI',system-ui,sans-serif;animation:rsvIn .42s cubic-bezier(.2,.9,.3,1) both}
+@keyframes rsvIn{from{opacity:0;transform:translateY(26px) rotate(-.8deg) scale(.97)}to{opacity:1;transform:none}}
+.rsv-sheet::before{content:'';position:absolute;left:0;right:0;top:-9px;height:10px;background:#FBF8F1;-webkit-mask-image:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 9px,#000 9px 17px,transparent 17px 19px);mask-image:repeating-linear-gradient(90deg,#000 0 6px,transparent 6px 9px,#000 9px 17px,transparent 17px 19px)}
+.rsv-x{position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;line-height:1;color:#B4AC9A;cursor:pointer;padding:4px 8px}
+.rsv-x:hover{color:#14161A}
+.rsv-eyebrow{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:#9A917E}
+.rsv-title{font-family:Georgia,serif;font-size:33px;line-height:1.12;letter-spacing:-.5px;margin:10px 0 12px;color:#14161A}
+.rsv-lead{font-size:14.5px;line-height:1.6;color:#4A4F57;max-width:52ch}
+.rsv-hr{height:1px;background:#DED6C4;margin:26px 0}
+.rsv-field{margin-bottom:16px}
+.rsv-field label{display:block;font-family:'SF Mono',Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:#8C8474;margin-bottom:6px}
+.rsv-field label i{text-transform:none;letter-spacing:0;color:#B5AC99}
+.rsv-field input,.rsv-field textarea{width:100%;background:transparent;border:none;border-bottom:1.5px solid #DED6C4;padding:8px 2px;font-size:15.5px;font-family:inherit;color:#14161A;outline:none;transition:border-color .18s;border-radius:0;box-sizing:border-box}
+.rsv-field input:focus,.rsv-field textarea:focus{border-bottom-color:#14161A}
+.rsv-field input::placeholder,.rsv-field textarea::placeholder{color:#BDB5A3}
+.rsv-field textarea{resize:vertical;min-height:44px;line-height:1.5}
+.rsv-row2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.rsv-toggle{background:none;border:none;font-family:'SF Mono',Menlo,monospace;font-size:11px;color:#8C8474;cursor:pointer;padding:2px 0;text-decoration:underline;text-underline-offset:3px}
+.rsv-toggle:hover{color:#14161A}
+#rsv-extra{display:none;margin-top:16px}
+#rsv-extra.show{display:block;animation:rsvFade .25s ease both}
+.rsv-q{margin-bottom:24px;padding-left:34px;position:relative}
+.rsv-q .rsv-num{position:absolute;left:0;top:2px;font-family:'SF Mono',Menlo,monospace;font-size:11px;color:#B9B09C}
+.rsv-qt{font-family:Georgia,serif;font-size:19.5px;line-height:1.32;margin-bottom:4px;transition:color .3s;color:#14161A}
+.rsv-note{font-size:12px;color:#948B7A;margin-bottom:11px;font-style:italic}
+.rsv-opts{display:flex;flex-wrap:wrap;gap:8px}
+.rsv-opt{background:transparent;border:1.5px solid #D8D0BE;border-radius:999px;padding:8px 15px;font-size:13.5px;font-family:inherit;color:#3A3F47;cursor:pointer;transition:all .16s;line-height:1.2;text-align:left}
+.rsv-opt:hover{border-color:#8C8474;transform:translateY(-1px)}
+.rsv-opt.sel{background:#14161A;border-color:#14161A;color:#FBF8F1}
+#rsv-rama:not(:empty){animation:rsvSlide .38s ease both}
+@keyframes rsvSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rsv-slider input[type=range]{width:100%;accent-color:#14161A;height:22px;cursor:pointer;margin:0}
+.rsv-ends{display:flex;justify-content:space-between;font-size:11.5px;color:#948B7A;gap:12px}
+.rsv-val{font-family:'SF Mono',Menlo,monospace;font-size:12px;color:#14161A;text-align:center;margin-top:8px;letter-spacing:.08em;min-height:16px}
+.rsv-consent{border-top:1px solid #DED6C4;padding-top:20px}
+.rsv-crow{display:flex;gap:11px;align-items:flex-start;cursor:pointer;user-select:none}
+.rsv-crow input{width:17px;height:17px;margin-top:2px;flex-shrink:0;accent-color:#14161A;cursor:pointer}
+.rsv-crow span{font-size:13.5px;line-height:1.55;color:#4A4F57}
+.rsv-consent.falta .rsv-crow span{color:#B23B2E}
+.rsv-consent .rsv-toggle{margin:10px 0 0 28px}
+.rsv-datos{display:none;margin:12px 0 0 28px;background:#F1EBDD;border-left:3px solid #CFC5AF;padding:15px 17px}
+.rsv-datos.show{display:block;animation:rsvFade .25s ease both}
+.rsv-datos p{font-size:12.5px;line-height:1.62;color:#4A4F57;margin:0 0 9px}
+.rsv-datos p:last-child{margin-bottom:0}
+.rsv-datos b{color:#14161A}
+.rsv-datos a{color:inherit}
+.rsv-datos .legal{font-size:11.5px;color:#7A7264;border-top:1px solid #DED6C4;padding-top:9px;margin-top:11px}
+.rsv-send{width:100%;background:#14161A;color:#FBF8F1;border:none;border-radius:3px;padding:16px;font-family:'SF Mono',Menlo,monospace;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:transform .14s,opacity .2s}
+.rsv-send:hover{transform:translateY(-1px)}
+.rsv-send:disabled{opacity:.4;cursor:wait;transform:none}
+.rsv-foot{font-size:11.5px;color:#9A917E;text-align:center;margin-top:12px;line-height:1.55}
+.rsv-err{color:#B23B2E;font-size:12.5px;text-align:center;margin-top:10px;min-height:16px}
+.rsv-stampzone{text-align:center;padding:14px 0 2px}
+.rsv-stamp{display:inline-block;font-family:'SF Mono',Menlo,monospace;font-weight:700;font-size:15px;letter-spacing:.1em;color:#B23B2E;border:3px solid #B23B2E;border-radius:5px;padding:11px 20px;text-transform:uppercase;transform:rotate(-6deg);animation:rsvSlam .5s cubic-bezier(.2,1.6,.4,1) both;opacity:.88}
+@keyframes rsvSlam{0%{transform:rotate(-6deg) scale(3.2);opacity:0}60%{opacity:.95}100%{transform:rotate(-6deg) scale(1);opacity:.88}}
+.rsv-res{font-family:Georgia,serif;margin-top:34px;animation:rsvFade .5s .25s ease both}
+.rsv-rol{font-family:'SF Mono',Menlo,monospace;font-size:10.5px;letter-spacing:.16em;color:#9A917E;text-transform:uppercase}
+.rsv-carat{font-family:'SF Mono',Menlo,monospace;font-size:14px;letter-spacing:.06em;margin:8px 0 4px;text-transform:uppercase;line-height:1.5;color:#14161A}
+.rsv-place{font-size:13px;color:#7A7264;font-style:italic;margin-bottom:22px}
+.rsv-h{font-family:'SF Mono',Menlo,monospace;font-size:11px;letter-spacing:.2em;margin:22px 0 9px;color:#14161A}
+.rsv-res p{font-size:15px;line-height:1.7;margin:0 0 9px;text-align:justify;color:#14161A}
+.rsv-res ol{margin:0 0 0 20px;padding:0}
+.rsv-res li{font-size:15px;line-height:1.7;margin-bottom:8px;text-align:justify;color:#14161A}
+.rsv-firma{text-align:right;margin-top:28px;font-size:13.5px;color:#5A5F66;line-height:1.7}
+.rsv-real{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.6;color:#5A5F66;background:#F1EBDD;border-left:3px solid #14161A;padding:14px 16px;margin-top:30px;text-align:left}
+.rsv-real a{color:inherit}
+@media(max-width:720px){.rsv-sheet{padding:34px 24px 32px}.rsv-title{font-size:26px}.rsv-row2{grid-template-columns:1fr;gap:0}.rsv-q{padding-left:26px}#rsv-back{padding:18px 12px 44px}.rsv-field input,.rsv-field textarea{font-size:16px}.rsv-carat{font-size:12.5px}}
