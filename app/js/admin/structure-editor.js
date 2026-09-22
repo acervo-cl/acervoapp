@@ -61,6 +61,23 @@ function eeInsertText(i, txt) {
   eeUpdatePreview();
 }
 
+// Wraps the selected textarea text with the marker pair used by the preview renderer.
+// Keep the selection active so multiple formatting actions can be applied in sequence.
+function _taSurround(id, pre, post) {
+  const ta = document.getElementById(id);
+  if (!ta) return null;
+  const start = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const end = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  const selected = ta.value.slice(start, end) || 'texto';
+  ta.value = ta.value.slice(0, start) + pre + selected + post + ta.value.slice(end);
+  ta.focus();
+  const nextStart = start + pre.length;
+  try {
+    ta.setSelectionRange(nextStart, nextStart + selected.length);
+  } catch (_) {}
+  return ta;
+}
+
 function eeFmt(i, kind) {
   const id = `ee-txt-${i}`;
   let ta;

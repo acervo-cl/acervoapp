@@ -37,6 +37,7 @@ function applyLibraryData(d) {
   STATE.papelera = d.papelera || [];
   STATE.railNotes = typeof d.railNotes === 'string' ? d.railNotes : '';
   STATE.railCfg = Object.assign({ monitor: true, recordatorios: true, notas: true, hoy: true, favoritos: false, repasar: false }, d.railCfg || {});
+  STATE.removedTiposDoc = Array.isArray(d.removedTiposDoc) ? d.removedTiposDoc : [];
   TIPOSDOC.length = 0; (d.tiposDoc || []).forEach(t => TIPOSDOC.push(t));
   ensureModelos();
   migrateClientes();

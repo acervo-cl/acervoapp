@@ -35,8 +35,9 @@ function defaultPartes(t){
   return base;
 }
 function ensureTiposDoc(){
-  if(!TIPOSDOC.length){ TIPOSDOC_DEFAULT.forEach(t=>TIPOSDOC.push(JSON.parse(JSON.stringify(t)))); }
-  TIPOSDOC_DEFAULT.forEach(d=>{ if(!TIPOSDOC.some(t=>t.id===d.id)) TIPOSDOC.push(JSON.parse(JSON.stringify(d))); });
+  const removed = new Set(Array.isArray(STATE.removedTiposDoc) ? STATE.removedTiposDoc : []);
+  if(!TIPOSDOC.length){ TIPOSDOC_DEFAULT.forEach(t=>{ if(!removed.has(t.id)) TIPOSDOC.push(JSON.parse(JSON.stringify(t))); }); }
+  TIPOSDOC_DEFAULT.forEach(d=>{ if(!removed.has(d.id) && !TIPOSDOC.some(t=>t.id===d.id)) TIPOSDOC.push(JSON.parse(JSON.stringify(d))); });
   TIPOSDOC.forEach(t=>{ if(!t.partes||!t.partes.length) t.partes=defaultPartes(t); if(t.enCausa===undefined) t.enCausa=(t.id==='escrito'); (t.partes||[]).forEach(p=>{ if(p.key==='tribunal' && p.align===undefined) p.align='center'; }); });
   MODELOS.forEach(m=>{ if(!m.tipoId) m.tipoId=m.categoria||'escrito'; });
   migratePresumaDemanda();
@@ -96,6 +97,7 @@ function addPersona(map, key, c){
   map[key+'.fechaNac']=c.fechaNac||'';
   map[key+'.edad']=edadDe(c.fechaNac);
   map[key+'.individualizacion']=buildIndividualizacion(c);
+  map[key+'.cargo']=(c.cargo||'').toLowerCase();
   return g;
 }
 function edadDe(fechaNac){
@@ -152,7 +154,16 @@ function redCtx(cx){
   ((cx&&cx.colaboradores)||[]).forEach((id,i)=>{ const c=findColaborador(id); if(c) addPersona(map, 'colab'+(i+1), c); });
   return {map, gen};
 }
-function abogadosDe(cx){ const ab=STATE.perfilAbogado||{}; const list=[{nombre:ab.nombre||'[ABOGADO]', rut:ab.rut, domicilio:ab.domicilio, correo:ab.email, genero:ab.genero||'m'}]; ((cx&&cx.colaboradores)||[]).forEach(id=>{ const c=findColaborador(id); if(c) list.push(c); }); return list; }
+function abogadosDe(cx){
+  const ab=STATE.perfilAbogado||{};
+  const list=[{nombre:ab.nombre||'[ABOGADO]', rut:ab.rut, domicilio:ab.domicilio, correo:ab.email, genero:ab.genero||'m', cargo:ab.cargo||'abogado'}];
+  const cargos=(cx&&cx.colaboradorCargos)||{};
+  ((cx&&cx.colaboradores)||[]).forEach(id=>{
+    const c=findColaborador(id); if(!c) return;
+    list.push(Object.assign({},c,{cargo:cargos[id]||c.cargo||'abogado'}));
+  });
+  return list;
+}
 function buildAbogadoIndiv(a){
   if(!a || !(a.nombre||'').trim()) return '';
   const g=(/^(f|fem|muj)/i.test(a.genero||'')) ? 'f' : 'm';

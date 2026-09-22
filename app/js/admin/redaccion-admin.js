@@ -174,21 +174,22 @@ function renderEquipo(){
     host.innerHTML=`<div class="modal-title">${c._isNew?'Nuevo colaborador':'Editar colaborador'}</div>
       <div class="form-grid"><div class="form-row"><label class="form-label">Nombre *</label><input class="form-input" id="co-nombre" value="${escapeHtml(c.nombre||'')}"></div><div class="form-row"><label class="form-label">RUT</label><input class="form-input" id="co-rut" value="${escapeHtml(c.rut||'')}"></div></div>
       <div class="form-grid"><div class="form-row"><label class="form-label">Domicilio</label><input class="form-input" id="co-domicilio" value="${escapeHtml(c.domicilio||'')}"></div><div class="form-row"><label class="form-label">Género</label><select class="form-select" id="co-genero">${['Masculino','Femenino'].map(x=>`<option ${(c.genero||'Masculino')===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
+      <div class="form-row"><label class="form-label">Tipo en escritos</label><select class="form-select" id="co-cargo"><option value="abogado" ${String(c.cargo||'abogado').toLowerCase()==='abogado'?'selected':''}>Abogado</option><option value="apoderado" ${String(c.cargo||'').toLowerCase()==='apoderado'?'selected':''}>Apoderado</option></select></div>
       <div class="form-row"><label class="form-label">Correo</label><input class="form-input" id="co-email" value="${escapeHtml(c.email||'')}"></div>
       <div class="modal-footer"><button class="btn-ghost" onclick="_equipoEdit=null;renderEquipo()">← Volver</button><button class="btn-gold" onclick="saveColab()">Guardar</button></div>`;
     return;
   }
-  const rows=list.map(c=>`<div class="mdl-card"><div style="flex:1"><div class="mdl-name">🧑‍⚖️ ${escapeHtml(c.nombre||'(sin nombre)')}</div><div class="mdl-suma">${[c.rut,c.domicilio].filter(Boolean).map(escapeHtml).join(' · ')||'—'}</div></div><div style="display:flex;gap:6px"><button class="btn-ghost" onclick="editColab('${c.id}')">Editar</button><button class="btn-ghost" style="color:var(--danger)" onclick="delColab('${c.id}')">🗑</button></div></div>`).join('')||'<div style="font-size:12px;color:var(--gray2)">Sin colaboradores externos. Estos son abogados que NO usan Acervo; a los que sí lo usan, agrégalos en 🤝 Mi equipo.</div>';
+  const rows=list.map(c=>`<div class="mdl-card"><div style="flex:1"><div class="mdl-name">🧑‍⚖️ ${escapeHtml(c.nombre||'(sin nombre)')}</div><div class="mdl-suma">${escapeHtml(c.cargo||'Abogado')} · ${[c.rut,c.domicilio].filter(Boolean).map(escapeHtml).join(' · ')||'—'}</div></div><div style="display:flex;gap:6px"><button class="btn-ghost" onclick="editColab('${c.id}')">Editar</button><button class="btn-ghost" style="color:var(--danger)" onclick="delColab('${c.id}')">🗑</button></div></div>`).join('')||'<div style="font-size:12px;color:var(--gray2)">Sin colaboradores externos. Estos son abogados que NO usan Acervo; a los que sí lo usan, agrégalos en 🤝 Mi equipo.</div>';
   host.innerHTML=`<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">👤 Colaboradores externos <button class="btn-gold" onclick="editColab(null)">＋ Externo</button></div>
     <div style="font-size:12px;color:var(--gray2);margin-bottom:12px">Solo para abogados que <b>no usan Acervo</b> (los cargas a mano). A tus colegas de la app agrégalos en <b>🤝 Mi equipo</b> y sus datos se toman solos. Al redactar aparecen todos juntos para elegir.</div>
     ${rows}
     <div class="modal-footer"><button class="btn-ghost" onclick="closeAllModals()">Cerrar</button></div>`;
 }
-function editColab(id){ _equipoEdit = id ? Object.assign({},(STATE.colaboradores||[]).find(c=>c.id===id)) : {id:'co'+Date.now(), nombre:'',rut:'',domicilio:'',email:'',genero:'Masculino', _isNew:true}; renderEquipo(); }
+function editColab(id){ _equipoEdit = id ? Object.assign({},(STATE.colaboradores||[]).find(c=>c.id===id)) : {id:'co'+Date.now(), nombre:'',rut:'',domicilio:'',email:'',genero:'Masculino',cargo:'abogado', _isNew:true}; renderEquipo(); }
 function saveColab(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
   if(!g('co-nombre')){ toast('Pon el nombre','error'); return; }
-  const o={ id:_equipoEdit.id, nombre:g('co-nombre'), rut:g('co-rut'), domicilio:g('co-domicilio'), genero:g('co-genero'), email:g('co-email') };
+  const o={ id:_equipoEdit.id, nombre:g('co-nombre'), rut:g('co-rut'), domicilio:g('co-domicilio'), genero:g('co-genero'), cargo:g('co-cargo')||'abogado', email:g('co-email') };
   STATE.colaboradores=STATE.colaboradores||[];
   const i=STATE.colaboradores.findIndex(c=>c.id===o.id); if(i>=0) STATE.colaboradores[i]=o; else STATE.colaboradores.push(o);
   _equipoEdit=null; saveState(); renderEquipo(); toast('Colaborador guardado','success');
@@ -786,7 +787,7 @@ function editTipoDoc(id){
     <label class="rw-check"><input type="checkbox" id="td-encausa" ${m.enCausa?'checked':''}> Se puede redactar dentro de una causa (si no, solo desde ✍️ Redactar)</label>
     <label class="rw-check"><input type="checkbox" id="td-paratodos" ${m.paraTodos?'checked':''}> 🌐 Visible para la comunidad (todos los usuarios). Se aplica solo al guardar.</label>
     ${m.builtin?'<div style="font-size:11px;color:var(--gray2)">Tipo base del sistema: el motor no se cambia.</div>':''}
-    <div class="modal-footer">${m._isNew||!m.builtin?`<button class="btn-ghost" style="color:var(--danger)" onclick="deleteTipoDoc('${m.id}')">Borrar tipo</button>`:''}<button class="btn-ghost" onclick="openModelosPanel()">Cancelar</button><button class="btn-gold" onclick="saveTipoDoc()">Guardar</button></div>`;
+    <div class="modal-footer">${m._isNew?'':`<button class="btn-ghost" style="color:var(--danger)" onclick="deleteTipoDoc('${m.id}')">Borrar tipo</button>`}<button class="btn-ghost" onclick="openModelosPanel()">Cancelar</button><button class="btn-gold" onclick="saveTipoDoc()">Guardar</button></div>`;
   openModal('modal-tipodoc');
 }
 function saveTipoDoc(){
@@ -806,14 +807,30 @@ function saveTipoDoc(){
 function deleteTipoDoc(id){
   if(!_needAdminForms()) return;
   const t=tipoById(id); if(!t) return;
-  if(t.builtin){ toast('No se puede borrar un tipo base del sistema','error'); return; }
   const n=piezasDeTipo(id).length;
-  if(!confirm(`¿Borrar el tipo "${t.nombre}"${n?` y sus ${n} pieza(s)`:''}?`)) return;
+  const suffix=n?` y sus ${n} pieza(s)`:'';
+  const warning=t.builtin?' Es un tipo base; puedes recuperarlo con "Restaurar".':'';
+  if(!confirm(`¿Borrar el tipo "${t.nombre}"${suffix}?${warning}`)) return;
   for(let j=MODELOS.length-1;j>=0;j--){ if((MODELOS[j].tipoId||MODELOS[j].categoria)===id) MODELOS.splice(j,1); }
   const i=TIPOSDOC.findIndex(x=>x.id===id); if(i>=0) TIPOSDOC.splice(i,1);
-  _mdlCat=(TIPOSDOC[0]||{}).id; saveState(); openModelosPanel(); toast('Tipo borrado','success');
+  if(t.builtin){
+    STATE.removedTiposDoc=Array.isArray(STATE.removedTiposDoc)?STATE.removedTiposDoc:[];
+    if(!STATE.removedTiposDoc.includes(id)) STATE.removedTiposDoc.push(id);
+  }
+  _mdlCat=(TIPOSDOC[0]||{}).id; saveState(); openModelosPanel(); toast('Tipo y sus modelos borrados','success');
 }
-function restaurarModelos(){ if(!_needAdminForms()) return; if(!confirm('¿Restaurar los modelos originales? Se perderán los cambios en los modelos por defecto.')) return; MODELOS.length=0; MODELOS_DEFAULT.forEach(m=>MODELOS.push(JSON.parse(JSON.stringify(m)))); saveState(); renderModelos(); }
+function restaurarModelos(){
+  if(!_needAdminForms()) return;
+  if(!confirm('¿Restaurar los modelos y tipos originales? Se perderán los cambios en los modelos por defecto.')) return;
+  STATE.removedTiposDoc=[];
+  TIPOSDOC_DEFAULT.forEach(d=>{ if(!TIPOSDOC.some(t=>t.id===d.id)) TIPOSDOC.push(JSON.parse(JSON.stringify(d))); });
+  MODELOS.length=0;
+  MODELOS_DEFAULT.forEach(m=>MODELOS.push(JSON.parse(JSON.stringify(m))));
+  ensureTiposDoc();
+  saveState();
+  _mdlCat=(TIPOSDOC[0]||{}).id;
+  renderModelos();
+}
 function deleteModelo(id){ if(!_needAdminForms()) return; if(!confirm('¿Borrar este modelo?')) return; const i=MODELOS.findIndex(m=>m.id===id); if(i>=0) MODELOS.splice(i,1); saveState(); renderModelos(); }
 // Visibilidad de un MODELO (subtipo) para el equipo: sin marca = visible; false = solo admin
 function toggleModeloParaTodos(id){ if(!_needAdminForms()) return; const m=MODELOS.find(x=>x.id===id); if(!m) return; m.paraTodos=(m.paraTodos===false); saveState(); renderModelos(); toast(m.paraTodos===false?'Este modelo lo verá solo el admin':'Este modelo lo verá toda la comunidad','success'); }
@@ -1052,6 +1069,19 @@ function saveModeloEdit(){
 
 // ── Perfil del abogado ──
 function openPartesPanel(){ renderPartes(); openModal('modal-partes'); }
+function cuentaAccesoHTML(){
+  const email = STATE.user || '';
+  return `<div class="partes-sec" style="margin-top:14px">
+    <div class="partes-h">🔐 Cuenta de acceso</div>
+    <div style="font-size:12px;color:var(--gray2);margin-bottom:10px">Cambia el correo con el que ingresas o define una nueva contraseña. Si cambias el correo, Supabase puede pedirte confirmar el cambio desde tu bandeja.</div>
+    <div class="form-row"><label class="form-label">Correo de acceso</label><input class="form-input" id="pa-account-email" type="email" value="${escapeHtml(email)}" autocomplete="email"></div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">Nueva contraseña</label><input class="form-input" id="pa-account-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div class="form-row"><label class="form-label">Repetir contraseña</label><input class="form-input" id="pa-account-pass-confirm" type="password" placeholder="Repite la contraseña" autocomplete="new-password"></div>
+    </div>
+    <button type="button" class="btn-ghost" onclick="saveCuentaAcceso()">Actualizar cuenta</button>
+  </div>`;
+}
 function renderPartes(){
   const host=document.getElementById('partes-body'); if(!host) return;
   const p=STATE.perfilAbogado||{};
@@ -1059,6 +1089,7 @@ function renderPartes(){
     host.innerHTML=`<div class="modal-title">🧑‍⚖️ Mi perfil</div>
       <div style="font-size:12px;color:var(--gray2);margin-bottom:14px">Tu nombre, para saludarte y personalizar tu espacio.</div>
       <div class="form-row"><label class="form-label">Nombre</label><input class="form-input" id="pa-nombre" value="${escapeHtml(p.nombre||'')}" placeholder="Tu nombre"></div>
+      ${cuentaAccesoHTML()}
       <div class="modal-footer"><button class="btn-ghost" onclick="closeAllModals()">Cerrar</button><button class="btn-gold" onclick="savePerfil()">Guardar</button></div>`;
     return;
   }
@@ -1070,7 +1101,7 @@ function renderPartes(){
     </div>
     <div class="form-row"><label class="form-label">Domicilio profesional</label><input class="form-input" id="pa-domicilio" value="${escapeHtml(p.domicilio||'')}"></div>
     <div class="form-grid">
-      <div class="form-row"><label class="form-label">Correo</label><input class="form-input" id="pa-email" value="${escapeHtml(p.email||'')}"></div>
+      <div class="form-row"><label class="form-label">Correo de contacto</label><input class="form-input" id="pa-email" type="email" value="${escapeHtml(p.email||'')}" autocomplete="email"></div>
       <div class="form-row"><label class="form-label">Calidad / cargo (cómo compareces)</label><input class="form-input" id="pa-cargo" list="pa-cargo-dl" value="${escapeHtml(p.cargo||'Abogado')}" placeholder="Abogado / Apoderado / Habilitado en Derecho"><datalist id="pa-cargo-dl"><option value="Abogado"><option value="Apoderado"><option value="Habilitado en Derecho"></datalist></div>
     </div>
     <div class="partes-sec"><div class="partes-h">🖋️ Membrete y pie (para los escritos que lo lleven)</div>
@@ -1108,6 +1139,7 @@ function renderPartes(){
         <div class="form-row"><label class="form-label">Imagen de marca de agua</label><input type="file" class="form-input" id="pa-wm-img" accept="image/*" onchange="onMembreteWmImg(this)"> ${(STATE.membrete&&STATE.membrete.wm&&STATE.membrete.wm.img)?'<span style="font-size:11px;color:var(--gold)">✓ imagen cargada</span>':''}</div>
       </div>`:''}
     </div>
+    ${cuentaAccesoHTML()}
     <div class="modal-footer"><button class="btn-ghost" onclick="closeAllModals();gotoClientes()">👥 Ver clientes</button><button class="btn-gold" onclick="savePerfil()">Guardar perfil</button></div>`;
 }
 function subirLogo(file){
@@ -1134,6 +1166,42 @@ function savePerfil(){
     if(wm.angle===undefined||isNaN(wm.angle)) wm.angle=45;
   }
   saveState(); pushMiFirma(); toast('Perfil guardado','success'); renderPartes();
+}
+async function saveCuentaAcceso(){
+  if(typeof sb==='undefined'||!sb||!STATE.uid){ toast('Tu sesión no está disponible','error'); return; }
+  const email = (val('pa-account-email') || '').toLowerCase();
+  const password = document.getElementById('pa-account-pass')?.value || '';
+  const confirmPassword = document.getElementById('pa-account-pass-confirm')?.value || '';
+  const currentEmail = (STATE.user || '').toLowerCase();
+  const updates = {};
+  if(email && email !== currentEmail){
+    if(!email.includes('@')){ toast('Escribe un correo válido','error'); return; }
+    updates.email = email;
+  }
+  if(password || confirmPassword){
+    if(password.length < 6){ toast('La contraseña debe tener al menos 6 caracteres','error'); return; }
+    if(password !== confirmPassword){ toast('Las contraseñas no coinciden','error'); return; }
+    updates.password = password;
+  }
+  if(!Object.keys(updates).length){ toast('No hay cambios de cuenta para guardar','error'); return; }
+  const btn = document.querySelector('#partes-body button[onclick="saveCuentaAcceso()"]');
+  if(btn) btn.disabled = true;
+  try{
+    const { data, error } = await sb.auth.updateUser(updates);
+    if(error) throw error;
+    if(data && data.user && data.user.email) STATE.user = data.user.email;
+    if(updates.email && updates.password) toast('Cuenta actualizada. Revisa tu correo para confirmar el nuevo acceso.','success');
+    else if(updates.email) toast('Te enviamos un correo para confirmar el nuevo acceso.','success');
+    else toast('Contraseña actualizada','success');
+    const pass = document.getElementById('pa-account-pass');
+    const confirm = document.getElementById('pa-account-pass-confirm');
+    if(pass) pass.value = '';
+    if(confirm) confirm.value = '';
+  }catch(e){
+    toast(`No se pudo actualizar la cuenta: ${e.message || e}`,'error');
+  }finally{
+    if(btn) btn.disabled = false;
+  }
 }
 // Comparte mis datos (nombre, RUT, domicilio, correo) a la ficha: para que el admin los vea y para que el EQUIPO me agregue como colaborador sin re-escribirlos
 async function pushMiFirma(){

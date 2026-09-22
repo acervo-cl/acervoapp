@@ -64,6 +64,7 @@ function _statePayload() {
     hiddenBooks: STATE.hiddenBooks,
     colaboradores: STATE.colaboradores,
     tiposComunidadReset: STATE.tiposComunidadReset,
+    removedTiposDoc: STATE.removedTiposDoc,
     confidAccepted: STATE.confidAccepted,
     tiposDoc: TIPOSDOC,
   };
@@ -117,6 +118,7 @@ function buildViewingPayload() {
   payload.railNotes = STATE.railNotes;
   payload.railCfg = STATE.railCfg;
   payload.tiposDoc = TIPOSDOC;
+  payload.removedTiposDoc = STATE.removedTiposDoc;
   if (STATE.mmWidth) payload.mmWidth = STATE.mmWidth;
   return payload;
 }
@@ -183,6 +185,7 @@ function resetLibraryFresh() {
   STATE.tabs = [];
   STATE.tabActive = null;
   STATE.colaboradores = [];
+  STATE.removedTiposDoc = [];
   STATE.redaccionDraft = null;
   STATE.lastOpened = null;
   STATE.users = [];
@@ -309,6 +312,7 @@ async function loadState() {
       STATE.tabActive = data.tabActive || null;
     }
     if (Array.isArray(data.colaboradores)) STATE.colaboradores = data.colaboradores;
+    if (Array.isArray(data.removedTiposDoc)) STATE.removedTiposDoc = data.removedTiposDoc;
     if (data.tiposComunidadReset) STATE.tiposComunidadReset = true;
     if (data.confidAccepted) STATE.confidAccepted = true;
     if (data.membrete) Object.assign(STATE.membrete, data.membrete);

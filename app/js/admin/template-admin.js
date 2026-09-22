@@ -100,8 +100,12 @@ function piezasDeTipo(id) {
 }
 
 function ensureModelos() {
+  const removedTypes = new Set(Array.isArray(STATE.removedTiposDoc) ? STATE.removedTiposDoc : []);
   if (!MODELOS.length) {
-    MODELOS_DEFAULT.forEach((m) => MODELOS.push(JSON.parse(JSON.stringify(m))));
+    MODELOS_DEFAULT.forEach((m) => {
+      const typeId = m.tipoId || m.categoria || 'escrito';
+      if (!removedTypes.has(typeId)) MODELOS.push(JSON.parse(JSON.stringify(m)));
+    });
   }
   MODELOS.forEach((m) => {
     if (!m.categoria) m.categoria = 'escrito';
@@ -110,7 +114,10 @@ function ensureModelos() {
     if (m.cuerpo === undefined) m.cuerpo = '';
   });
   MODELOS_DEFAULT.forEach((d) => {
-    if (!MODELOS.some((m) => m.id === d.id)) MODELOS.push(JSON.parse(JSON.stringify(d)));
+    const typeId = d.tipoId || d.categoria || 'escrito';
+    if (!removedTypes.has(typeId) && !MODELOS.some((m) => m.id === d.id)) {
+      MODELOS.push(JSON.parse(JSON.stringify(d)));
+    }
   });
   const pyp = MODELOS.find((m) => m.id === 'pyp');
   if (pyp && !pyp.esPatrocinio) {
@@ -164,6 +171,10 @@ function renderModelos() {
   const adm = canEditForms();
   const tabs = TIPOSDOC.map((t) => `<button class="rw-pill ${_mdlCat === t.id ? 'on' : ''}" onclick="_mdlCat='${t.id}';renderModelos()">${t.icono || ''} ${escapeHtml(t.nombre)}</button>`).join('') + (adm ? '<button class="rw-pill" onclick="editTipoDoc(null)" title="Agregar tipo de documento">＋ Tipo</button>' : '');
   const tipo = tipoById(_mdlCat);
+  if (!tipo) {
+    host.innerHTML = `<div class="redactar-tabs" style="flex-wrap:wrap">${tabs}</div><div style="padding:24px 8px;color:var(--gray2)">No hay tipos de documento. Crea uno para empezar.</div>`;
+    return;
+  }
   const doc = (tipo.motor || 'judicial') === 'documental';
   const list = piezasDeTipo(tipo.id);
   const cards = list.map((m) => {

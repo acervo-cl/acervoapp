@@ -1828,8 +1828,16 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
     <div id="view-estante" class="view-panel">
       <div class="content-header">
         <div><div class="content-title">Estantería</div><div class="content-sub">Click en un libro para previsualizarlo · arrastra para reordenar</div></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-ghost" onclick="toggleLibSel()" title="Seleccionar varios para borrar">☑ Seleccionar</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <input class="form-input" id="shelf-query" style="width:180px;padding:8px 10px;font-size:12px" placeholder="Buscar libro…" oninput="setShelfQuery(this.value)">
+          <select class="form-select" id="shelf-filter" style="width:auto;padding:8px 10px;font-size:12px" onchange="setShelfFilter(this.value)">
+            <option value="all">Todos</option><option value="pending">Pendientes</option><option value="progress">En progreso</option><option value="done">Leídos</option><option value="favorites">Favoritos</option>
+          </select>
+          <select class="form-select" id="shelf-sort" style="width:auto;padding:8px 10px;font-size:12px" onchange="setShelfSort(this.value)">
+            <option value="manual">Orden manual</option><option value="title">Título</option><option value="author">Autor</option><option value="progress">Progreso</option><option value="recent">Más recientes</option>
+          </select>
+          <button class="btn-ghost" onclick="toggleLibSel()" title="Seleccionar varios">☑ Seleccionar</button>
+          <button class="btn-ghost" onclick="selectAllLib()" title="Seleccionar todos los libros">☑ Seleccionar todo</button>
           <button class="btn-ghost" onclick="emptyLibrary()" title="Mover todos tus libros a la papelera">🗑 Vaciar</button>
           <button class="btn-gold perm-add" style="display:none" onclick="quickAddBook()">+ Agregar Libro</button>
         </div>
@@ -1891,10 +1899,15 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
     <div id="view-expedientes" class="view-panel">
       <div class="content-header sticky-head">
         <div><div class="content-title">📁 Expedientes</div><div class="content-sub">Tus carpetas de causas. Abre una para ver sus documentos.</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
           <div class="exp-viewtog hide-on-mobile"><button id="expv-libre" class="exp-vbtn" onclick="setExpView('libre')" title="Libre (arrastrar)">✋</button><button id="expv-grid" class="exp-vbtn" onclick="setExpView('grid')" title="Grilla ordenada">🗂️</button><button id="expv-list" class="exp-vbtn" onclick="setExpView('list')" title="Lista">☰</button></div>
+          <input class="form-input" id="exp-query" style="width:180px;padding:8px 10px;font-size:12px" placeholder="Buscar trabajo…" oninput="setExpQuery(this.value)">
+          <select class="form-select" id="exp-sort" style="width:auto;padding:8px 10px;font-size:12px" onchange="setExpSort(this.value)">
+            <option value="recent">Más recientes</option><option value="name">Carátula</option><option value="status">Estado</option><option value="type">Tipo</option><option value="deadline">Plazo</option>
+          </select>
           <button class="btn-ghost hide-on-mobile" onclick="openImportCausas()">⬆ Importar tabla</button>
           <button class="btn-ghost" onclick="toggleExpSel()">☑ Seleccionar</button>
+          <button class="btn-ghost" onclick="selectAllExp()">☑ Seleccionar todo</button>
           <button class="btn-gold" onclick="openNuevaCarpeta()">＋ Nueva carpeta</button>
           <button class="btn-ghost only-mobile" onclick="causaHeadMenu(event)" title="Más: importar, vistas, acciones">⋯</button>
         </div>
@@ -1989,6 +2002,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <button class="btn-ghost" onclick="openImportFlashcards()">⬆ Importar</button>
           <button class="btn-ghost" id="fc-sel-btn" onclick="toggleFcSel()">☑ Seleccionar</button>
+          <button class="btn-ghost" onclick="selectAllFc()">☑ Seleccionar todo</button>
           <button class="btn-gold" onclick="openAddCard()">+ Tarjeta</button>
         </div>
       </div>
@@ -2026,7 +2040,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   <div class="avatar-item admin-ctrl" onclick="openStats()">📊 Progreso</div>
   <div class="avatar-item" onclick="openStorageInfo()">☁️ Almacenamiento</div>
   <div class="avatar-item" onclick="openPapelera()">🗑 Papelera</div>
-  <div class="avatar-item" id="admin-menu-item" style="display:none" onclick="switchView('admin',null)">⚙️ Administrar</div>
+  <div class="avatar-item" id="admin-menu-item" style="display:none" onclick="closeAvatarMenu();switchView('admin',null)">⚙️ Administrar</div>
   <div class="avatar-sep admin-ctrl"></div>
   <div class="avatar-item admin-ctrl" onclick="exportBackup()">⬇ Exportar backup</div>
   <div class="avatar-item admin-ctrl" onclick="importBackup()">⬆ Importar backup</div>
@@ -2693,6 +2707,7 @@ const STATE = {
   otrosiPorTanto: true, // recordar si los otrosíes llevan "por tanto" (preferencia)
   colaboradores: [],    // Colaboradores externos (no usan Acervo) {id,nombre,rut,domicilio,genero}
   tiposComunidadReset: false,   // migración única: tipos de fábrica dejaron de estar "para todos" por defecto
+  removedTiposDoc: [],   // tipos base que el admin elimino de su biblioteca
   confidAccepted: false,   // aceptó el aviso de confidencialidad (acceso anticipado)
   membrete: {logo:'', pie:''},   // membrete (logo) + pie de página del usuario para los escritos
   expView: 'grid',        // 'grid' (carpetas) | 'list' (lista) en Expedientes
@@ -2871,10 +2886,34 @@ function _htmlToMarks(root){
     return s; };
   return ser(root).replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').replace(/^\n+|\s+$/g,'');
 }
-function _richFmt(id,kind){ const el=document.getElementById(id); if(!el) return; el.focus();
-  if(kind==='b') document.execCommand('bold'); else if(kind==='i') document.execCommand('italic');
-  else if(kind==='u') document.execCommand('underline'); else if(kind==='center') document.execCommand('justifyCenter'); }
-function _richInsert(id,tok){ const el=document.getElementById(id); if(!el) return; el.focus(); try{ document.execCommand('insertText',false,tok); }catch(_){ } }
+function _richRange(el){
+  const sel=window.getSelection();
+  if(!sel || !sel.rangeCount) return null;
+  const range=sel.getRangeAt(0);
+  return el.contains(range.commonAncestorContainer) ? range : null;
+}
+function _richSelectNode(node){
+  const sel=window.getSelection(); if(!sel) return;
+  const range=document.createRange(); range.selectNodeContents(node);
+  sel.removeAllRanges(); sel.addRange(range);
+}
+function _richFmt(id,kind){
+  const el=document.getElementById(id); if(!el) return;
+  const range=_richRange(el); if(!range || range.collapsed) return;
+  const node=kind==='center'?document.createElement('div'):
+    document.createElement(kind==='b'?'strong':kind==='i'?'em':'u');
+  if(kind==='center') node.style.textAlign='center';
+  node.appendChild(range.extractContents()); range.insertNode(node);
+  el.focus(); _richSelectNode(node);
+}
+function _richInsert(id,tok){
+  const el=document.getElementById(id); if(!el) return;
+  let range=_richRange(el);
+  if(!range){ el.focus(); range=document.createRange(); range.selectNodeContents(el); range.collapse(false); }
+  range.deleteContents(); const node=document.createTextNode(tok); range.insertNode(node);
+  range.setStartAfter(node); range.collapse(true);
+  const sel=window.getSelection(); if(sel){ sel.removeAllRanges(); sel.addRange(range); }
+}
 // Barra para el editor con negrita real (contenteditable) — botones siempre visibles
 function _richBar(id, tokens){
   const toks=(tokens||[]).map(([tk,lb])=>`<button class="rw-mini ee-tok" onmousedown="event.preventDefault()" onclick="_richInsert('${id}','${tk}')" title="${escapeHtml(lb||tk)}">${escapeHtml(lb||tk)}</button>`).join('');

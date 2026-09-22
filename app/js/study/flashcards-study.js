@@ -222,6 +222,16 @@ async function doShareMazo(mid){
 // ── Selección múltiple de flashcards (eliminar / compartir / editar) ──
 let _fcSelMode=false, _fcSel=new Set();
 function toggleFcSel(){ _fcSelMode=!_fcSelMode; _fcSel.clear(); const b=document.getElementById('fc-sel-btn'); if(b){ b.textContent=_fcSelMode?'✕ Salir':'☑ Seleccionar'; b.classList.toggle('active',_fcSelMode); } renderFlashcards(); _fcSelBar(); }
+function selectAllFc(){
+  if(!STATE.flashcards.length){ toast('No hay tarjetas para seleccionar','error'); return; }
+  _fcSelMode=true;
+  _fcSel.clear();
+  STATE.flashcards.forEach(c=>_fcSel.add(c.id));
+  const b=document.getElementById('fc-sel-btn');
+  if(b){ b.textContent='✕ Salir'; b.classList.add('active'); }
+  renderFlashcards();
+  _fcSelBar();
+}
 function toggleFcOne(id,el){ if(_fcSel.has(id)){ _fcSel.delete(id); el&&el.classList.remove('sel-on'); } else { _fcSel.add(id); el&&el.classList.add('sel-on'); } if(el){ const box=el.querySelector('div'); if(box) box.textContent=_fcSel.has(id)?'☑':'⬜'; } _fcSelBar(); }
 function _fcSelBar(){
   let bar=document.getElementById('fc-sel-bar');
@@ -229,6 +239,7 @@ function _fcSelBar(){
   if(!bar){ bar=document.createElement('div'); bar.id='fc-sel-bar'; bar.style.cssText='position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:5000;display:flex;gap:10px;align-items:center;background:var(--navy2);border:1px solid rgba(201,168,76,.35);border-radius:12px;padding:10px 16px;box-shadow:0 20px 50px rgba(0,0,0,.55)'; document.body.appendChild(bar); }
   const n=_fcSel.size;
   bar.innerHTML=`<span style="font-size:13px;font-weight:600">${n} seleccionada${n===1?'':'s'}</span>`
+    + `<button class="btn-ghost" style="padding:6px 12px" onclick="selectAllFc()">☑ Seleccionar todo</button>`
     + (n===1?`<button class="btn-ghost" style="padding:6px 12px" onclick="editFcSelected()">✏️ Editar</button>`:'')
     + `<button class="btn-ghost" style="padding:6px 12px" onclick="moveFcToMazo()"${n?'':' disabled'}>📚 Agregar a mazo</button>`
     + `<button class="btn-ghost" style="padding:6px 12px" onclick="shareFcSelected()"${n?'':' disabled'}>🤝 Compartir</button>`
@@ -907,4 +918,3 @@ async function saveDoc() {
   renderAll();
   if(openFolderSubject) openFolderDocs(openFolderSubject);
 }
-

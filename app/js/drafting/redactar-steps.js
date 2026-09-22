@@ -331,10 +331,20 @@ function rwSetPTTexto(v) {
 function rwToggleColab(id) {
   _RW.cx.colaboradores = _RW.cx.colaboradores || [];
   const i = _RW.cx.colaboradores.indexOf(id);
-  if (i >= 0) _RW.cx.colaboradores.splice(i, 1);
+  if (i >= 0) {
+    _RW.cx.colaboradores.splice(i, 1);
+    if (_RW.cx.colaboradorCargos) delete _RW.cx.colaboradorCargos[id];
+  }
   else _RW.cx.colaboradores.push(id);
   rwSaveDraft();
   renderRW();
+}
+
+function rwSetColabCargo(id, cargo) {
+  _RW.cx.colaboradorCargos = _RW.cx.colaboradorCargos || {};
+  _RW.cx.colaboradorCargos[id] = cargo === 'apoderado' ? 'apoderado' : 'abogado';
+  rwSaveDraft();
+  if (typeof rwUpdatePreview === 'function') rwUpdatePreview();
 }
 
 function rwPatrocinantes() {
@@ -345,8 +355,13 @@ function rwPatrocinantes() {
   if (!tienePyp) return '';
   const sel = _RW.cx.colaboradores || [];
   const colabs = allColaboradores();
-  const chips = colabs.length ? colabs.map((c) => `<label class="rw-check" style="margin:0"><input type="checkbox" ${sel.includes(c.id) ? 'checked' : ''} onchange="rwToggleColab('${c.id}')"> ${escapeHtml(c.nombre)}${c._team ? ' <span style="font-size:10px;color:var(--gold3)">equipo</span>' : ''}</label>`).join('') : '<span style="font-size:12px;color:var(--gray2)">No tienes equipo. Invita colegas en 🤝 Mi equipo (por correo) o agrega externos en 👤 → Colaboradores externos.</span>';
-  return `<div class="rw-presuma-box"><div class="partes-h">🤝 Patrocinantes del PYP</div><div style="font-size:11px;color:var(--gray2);margin-bottom:6px">Tú vas siempre. Marca a los de tu equipo y el texto pasa a plural automáticamente.</div><div class="mdl-otrosis">${chips}</div></div>`;
+  const cargos = (_RW.cx.colaboradorCargos || {});
+  const chips = colabs.length ? colabs.map((c) => {
+    const selected = sel.includes(c.id);
+    const cargo = cargos[c.id] || c.cargo || 'abogado';
+    return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><label class="rw-check" style="margin:0;flex:1"><input type="checkbox" ${selected ? 'checked' : ''} onchange="rwToggleColab('${c.id}')"> ${escapeHtml(c.nombre)}${c._team ? ' <span style="font-size:10px;color:var(--gold3)">equipo</span>' : ''}</label>${selected ? `<select class="form-select" style="width:auto;min-width:120px;padding:5px 8px;font-size:12px" onchange="rwSetColabCargo('${c.id}',this.value)"><option value="abogado" ${cargo==='abogado'?'selected':''}>Abogado</option><option value="apoderado" ${cargo==='apoderado'?'selected':''}>Apoderado</option></select>` : ''}</div>`;
+  }).join('') : '<span style="font-size:12px;color:var(--gray2)">No tienes equipo. Invita colegas en 🤝 Mi equipo (por correo) o agrega externos en 👤 → Colaboradores externos.</span>';
+  return `<div class="rw-presuma-box"><div class="partes-h">🤝 Patrocinantes del PYP</div><div style="font-size:11px;color:var(--gray2);margin-bottom:6px">Tú vas siempre. Marca a los de tu equipo y define si cada uno actúa como abogado o apoderado.</div><div class="mdl-otrosis" style="display:flex;flex-direction:column;gap:7px">${chips}</div></div>`;
 }
 
 function rwSetPresuma(ri, val) {

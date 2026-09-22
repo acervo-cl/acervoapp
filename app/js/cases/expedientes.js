@@ -14,6 +14,14 @@ function migrateExpTipo(){
 // ── Selección múltiple de causas para compartir en lote ──
 let _expSelMode=false; const _expSel=new Set();
 function toggleExpSel(){ _expSelMode=!_expSelMode; _expSel.clear(); renderExpedientes(); }
+function selectAllExp(){
+  const items=expVisibleList();
+  if(!items.length){ toast('No hay trabajos para seleccionar','error'); return; }
+  _expSelMode=true;
+  _expSel.clear();
+  items.forEach(e=>_expSel.add(e.id));
+  renderExpedientes();
+}
 // Menú ⋯ de la cabecera de Causas (móvil): importar, vistas y, si estás seleccionando, las acciones
 function causaHeadMenu(ev){
   ev&&ev.stopPropagation();
@@ -33,7 +41,7 @@ function causaHeadMenu(ev){
   showCtx(ev, items);
 }
 function toggleExpSelOne(id){ if(_expSel.has(id)) _expSel.delete(id); else _expSel.add(id); renderExpedientes(); }
-function expSelBar(){ if(!_expSelMode) return ''; return `<div class="exp-selbar"><span>${_expSel.size} seleccionada(s)</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="toggleExpSel()">Cancelar</button><button class="btn-ghost" ${_expSel.size?'':'disabled'} onclick="dupExpSelected()">⧉ Duplicar (${_expSel.size})</button><button class="btn-ghost" ${_expSel.size?'':'disabled'} onclick="openMasivoFromCausas()">✍️ Redactar (${_expSel.size})</button><button class="btn-gold" ${_expSel.size?'':'disabled'} onclick="openBulkShareCausas()">🤝 Compartir (${_expSel.size})</button></span></div>`; }
+function expSelBar(){ if(!_expSelMode) return ''; return `<div class="exp-selbar"><span>${_expSel.size} seleccionada(s)</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="selectAllExp()">☑ Seleccionar todo</button><button class="btn-ghost" onclick="toggleExpSel()">Cancelar</button><button class="btn-ghost" ${_expSel.size?'':'disabled'} onclick="dupExpSelected()">⧉ Duplicar (${_expSel.size})</button><button class="btn-ghost" ${_expSel.size?'':'disabled'} onclick="openMasivoFromCausas()">✍️ Redactar (${_expSel.size})</button><button class="btn-gold" ${_expSel.size?'':'disabled'} onclick="openBulkShareCausas()">🤝 Compartir (${_expSel.size})</button></span></div>`; }
 // Duplica las carpetas seleccionadas (copia los datos de la carpeta con "(copia)"; los documentos no se copian)
 function dupExpSelected(){
   const ids=[..._expSel]; if(!ids.length){ toast('Selecciona al menos una','error'); return; }
@@ -79,15 +87,31 @@ async function doBulkShareCausas(){
   toast(ok+' causa(s) compartida(s) con '+(email||'el colega'),'success');
 }
 let _expFilter='todas';   // todas | causas | prep | asuntos
+let _expQuery='', _expSort='recent';
 function expFilterOk(e){
   if(_expFilter==='causas')  return e.kind!=='asunto' && !e.prep;
   if(_expFilter==='prep')    return !!e.prep;
   if(_expFilter==='asuntos') return e.kind==='asunto';
   return true;
 }
+function expQueryOk(e){
+  const q=(_expQuery||'').trim().toLowerCase(); if(!q) return true;
+  return [e.name,e.rit,e.ruc,e.rol,e.tribunal,e.contraparte,e.tipo,e.materia,e.estado,e.abogado,e.cuantia,e.plazo,e.carpeta,e.obs].filter(Boolean).join(' ').toLowerCase().includes(q);
+}
+function expVisibleList(){
+  const list=EXPEDIENTES.filter(e=>expFilterOk(e)&&expQueryOk(e));
+  if(_expSort==='name') list.sort((a,b)=>(causaLabel(a)||'').localeCompare(causaLabel(b)||''));
+  else if(_expSort==='status') list.sort((a,b)=>(a.estado||'').localeCompare(b.estado||'')||(b.updated||0)-(a.updated||0));
+  else if(_expSort==='type') list.sort((a,b)=>(a.tipo||a.materia||'').localeCompare(b.tipo||b.materia||'')||(b.updated||0)-(a.updated||0));
+  else if(_expSort==='deadline') list.sort((a,b)=>(a.plazo||'').localeCompare(b.plazo||'')||(b.updated||0)-(a.updated||0));
+  else list.sort((a,b)=>(b.updated||b.created||0)-(a.updated||a.created||0));
+  return list;
+}
 function setExpFilter(f){ _expFilter=f; renderExpedientes(); }
+function setExpQuery(value){ _expQuery=value||''; renderExpedientes(); }
+function setExpSort(value){ _expSort=value||'recent'; renderExpedientes(); }
 function expFilterBar(){
-  const n=f=>EXPEDIENTES.filter(e=>f==='causas'?(e.kind!=='asunto'&&!e.prep):f==='prep'?!!e.prep:f==='asuntos'?e.kind==='asunto':true).length;
+  const n=f=>EXPEDIENTES.filter(e=>{ const byType=f==='causas'?(e.kind!=='asunto'&&!e.prep):f==='prep'?!!e.prep:f==='asuntos'?e.kind==='asunto':true; return byType&&expQueryOk(e); }).length;
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">`+
     [['todas','Todas'],['causas','📁 Causas'],['prep','📝 En preparación'],['asuntos','📑 Asuntos']]
       .map(([k,l])=>`<button class="btn-ghost ${_expFilter===k?'on':''}" style="font-size:12px;${_expFilter===k?'color:var(--gold);border-color:rgba(201,168,76,.4)':''}" onclick="setExpFilter('${k}')">${l} <span style="opacity:.6">${n(k)}</span></button>`).join('')+`</div>`;
@@ -102,12 +126,14 @@ function renderExpedientes(){
   if(gb) gb.classList.toggle('on',STATE.expView==='grid');
   if(lb) lb.classList.toggle('on',STATE.expView==='list');
   if(!EXPEDIENTES.length){ host.innerHTML='<div class="favs-empty"><div>📁</div><p>Aún no tienes carpetas.<br>Crea una con "＋ Nueva carpeta" y elige el tipo.<br><span style="font-size:11px;opacity:.7">(doble clic para abrir una carpeta)</span></p></div>'; return; }
-  const list=EXPEDIENTES.filter(expFilterOk).sort((a,b)=>(b.updated||0)-(a.updated||0));
+  const list=expVisibleList();
+  if(_expSelMode){ const visible=new Set(list.map(e=>e.id)); _expSel.forEach(id=>{ if(!visible.has(id)) _expSel.delete(id); }); }
+  if(!list.length){ host.innerHTML=expFilterBar()+expSelBar()+'<div class="favs-empty"><div>🔎</div><p>No hay trabajos que coincidan con el filtro actual.</p></div>'; return; }
   if(STATE.expView==='list'){
     if(isMobile()){
       host.innerHTML=expSelBar()+list.map(e=>{ const n=expDocs(e.id).length; const cli=findCliente(e.clienteId); const shared=e.shared||_sharedCausaIds.has(e.id); const on=_expSel.has(e.id);
         const clk=_expSelMode?`onclick="toggleExpSelOne('${e.id}')"`:`onclick="openExpediente('${e.id}')" oncontextmenu="causaCtx(event,'${e.id}')"`;
-        return `<div class="mcard ${on?'sel-on':''}" ${clk}>
+        return `<div class="mcard ${on?'sel-on':''}" data-exp-id="${e.id}" ${_expSelMode?`onclick="event.stopPropagation();toggleExpSelOne('${e.id}')"`:clk}>
           ${_expSelMode?`<div class="sel-check">${on?'✓':''}</div>`:''}
           <div class="mcard-title">${escapeHtml(causaLabel(e))}${shared?' 🤝':''}</div>
           <div class="mcard-sub">${escapeHtml(e.tipo||e.materia||'Causa')}${e.estado?' · '+escapeHtml(e.estado):''}</div>
@@ -119,7 +145,7 @@ function renderExpedientes(){
     const rowOf=e=>{
       const n=expDocs(e.id).length; const cli=findCliente(e.clienteId); const on=_expSel.has(e.id);
       const clk=_expSelMode?`onclick="toggleExpSelOne('${e.id}')"`:`ondblclick="openExpediente('${e.id}')" oncontextmenu="causaCtx(event,'${e.id}')"`;
-      return `<tr class="${on?'sel-on':''}" ${clk} style="cursor:pointer">
+      return `<tr class="${on?'sel-on':''}" data-exp-id="${e.id}" ${_expSelMode?`onclick="event.stopPropagation();toggleExpSelOne('${e.id}')"`:clk} style="cursor:pointer">
         <td>${_expSelMode?(on?'☑ ':'☐ '):''}<b>${escapeHtml(causaLabel(e))}</b><div class="cli-meta">${escapeHtml(e.materia||'')}</div></td>
         <td>${escapeHtml(e.rit||e.rol||'—')}</td>
         <td>${escapeHtml(cli?cli.nombre:(e.cliente||'—'))}</td>
@@ -175,7 +201,7 @@ function folderCardHTML(e){    // versión estática (modo selección / móvil)
   const clk=_expSelMode?`onclick="toggleExpSelOne('${e.id}')"`
     :(isMobile()?`onclick="openExpediente('${e.id}')" oncontextmenu="causaCtx(event,'${e.id}')"`
                 :`ondblclick="openExpediente('${e.id}')" onclick="expCardClick(event,'${e.id}',this)" oncontextmenu="causaCtx(event,'${e.id}')"`);
-  return `<div class="exp-folder-card ${on?'sel-on':''} ${e.prep?'prep':''} ${asu?'asunto':''}" style="--fc:${e.color||(asu?'#bcd3e8':'#e8c97f')}" ${clk} title="Doble clic para abrir · clic derecho para opciones">
+  return `<div class="exp-folder-card ${on?'sel-on':''} ${e.prep?'prep':''} ${asu?'asunto':''}" data-exp-id="${e.id}" style="--fc:${e.color||(asu?'#bcd3e8':'#e8c97f')}" ${_expSelMode?`onclick="event.stopPropagation();toggleExpSelOne('${e.id}')"`:clk} title="Doble clic para abrir · clic derecho para opciones">
     ${_expSelMode?`<div class="sel-check">${on?'✓':''}</div>`:''}${folderCardInner(e)}</div>`;
 }
 // Tarjeta arrastrable dentro de su carril (guarda posición gx,gy)

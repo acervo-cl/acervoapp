@@ -5,6 +5,7 @@ function _masterData() {
   return {
     tiposDoc: TIPOSDOC,
     modelos: MODELOS,
+    removedTiposDoc: STATE.removedTiposDoc || [],
     compareceTpl: STATE.compareceTpl || null,
     causaTpl: STATE.causaTpl || null,
     indivTpl: STATE.indivTpl || null,
@@ -55,6 +56,7 @@ async function loadMasterConfig() {
 
 function applyMasterToSession(m) {
   if (!m) return;
+  STATE.removedTiposDoc = Array.isArray(m.removedTiposDoc) ? m.removedTiposDoc : [];
   const tipos = (m.tiposDoc || []).filter(t => t && t.paraTodos);
   TIPOSDOC.length = 0;
   tipos.forEach(t => TIPOSDOC.push(JSON.parse(JSON.stringify(t))));
@@ -83,6 +85,7 @@ async function publishMaster() {
   const data = {
     tiposDoc: TIPOSDOC,
     modelos: MODELOS,
+    removedTiposDoc: STATE.removedTiposDoc || [],
     compareceTpl: STATE.compareceTpl || null,
     causaTpl: STATE.causaTpl || null,
     indivTpl: STATE.indivTpl || null,
@@ -193,6 +196,7 @@ function teamColaboradores() {
       rut: f.rut || p.rut || '',
       domicilio: f.domicilio || '',
       correo: f.correo || p.email || '',
+      cargo: f.cargo || p.cargo || 'Abogado',
       _team: true
     };
   }).filter(c => (c.nombre || '').trim());
