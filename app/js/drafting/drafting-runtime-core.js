@@ -136,6 +136,15 @@ function buildIndividualizacionGroup(persons){
 }
 const _baseRole=k=>String(k).replace(/\d+$/,'');
 function _clienteIds(cx){ if(cx && Array.isArray(cx.clienteIds) && cx.clienteIds.length) return cx.clienteIds.filter(Boolean); return (cx&&cx.clienteId)?[cx.clienteId]:[]; }
+function colaboradoresDe(cx){
+  const ids = Array.isArray(cx && cx.colaboradores) ? cx.colaboradores : [];
+  const saved = (cx && cx.colaboradorData) || {};
+  return ids.map((id) => {
+    let c = null;
+    try { c = findColaborador(id); } catch (_) {}
+    return c || saved[String(id)] || saved[id] || null;
+  }).filter((c) => c && (c.nombre || '').trim());
+}
 function redCtx(cx){
   const ab=STATE.perfilAbogado||{}; const cli=findCliente(cx&&cx.clienteId)||{};
   const map={ 'abogado.nombre':_nomFmt(ab.nombre),'abogado.rut':ab.rut,'abogado.domicilio':ab.domicilio,'abogado.email':ab.email,'abogado.cargo':ab.cargo, 'causa.rol':cx&&cx.rol,'causa.rit':cx&&cx.rol,'causa.tribunal':cx&&cx.tribunal,'causa.caratula':cx&&cx.caratula,'causa.materia':cx&&cx.materia,'causa.area':cx&&cx.area, 'fecha':longDateCL() };
@@ -151,16 +160,16 @@ function redCtx(cx){
   const cliIds=_clienteIds(cx); if(cliIds.length>1){ const cps=cliIds.map(findCliente).filter(Boolean); map['cliente.individualizacion']=buildIndividualizacionGroup(cps); map['cliente.nombre']=_joinNombres(cps.map(p=>_nomFmt(p.nombre))); map['cliente.esPlural']='1'; }
   map['abogados']=abogadosIndiv(cx);
   map['abogados.nombres']=abogadosNombres(cx);
-  ((cx&&cx.colaboradores)||[]).forEach((id,i)=>{ const c=findColaborador(id); if(c) addPersona(map, 'colab'+(i+1), c); });
+  colaboradoresDe(cx).forEach((c,i)=>{ addPersona(map, 'colab'+(i+1), c); });
   return {map, gen};
 }
 function abogadosDe(cx){
   const ab=STATE.perfilAbogado||{};
   const list=[{nombre:ab.nombre||'[ABOGADO]', rut:ab.rut, domicilio:ab.domicilio, correo:ab.email, genero:ab.genero||'m', cargo:ab.cargo||'abogado'}];
   const cargos=(cx&&cx.colaboradorCargos)||{};
-  ((cx&&cx.colaboradores)||[]).forEach(id=>{
-    const c=findColaborador(id); if(!c) return;
-    list.push(Object.assign({},c,{cargo:cargos[id]||c.cargo||'abogado'}));
+  colaboradoresDe(cx).forEach((c)=>{
+    const id=String(c.id);
+    list.push(Object.assign({},c,{cargo:cargos[id]||cargos[c.id]||c.cargo||'abogado'}));
   });
   return list;
 }

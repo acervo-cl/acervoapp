@@ -2,6 +2,7 @@ const _SYNC_DEFAULTS = {
   status: 'idle',
   source: 'none',
   pending: false,
+  remoteExists: false,
   localUpdatedAt: null,
   remoteUpdatedAt: null,
   lastError: '',
@@ -26,6 +27,7 @@ function _renderSyncIndicator() {
     pending: 'Pendiente de sincronizar',
     synced: 'Sincronizado',
     error: 'Error de sincronización',
+    conflict: 'Conflicto de sincronización',
   };
   const label = labels[sync.status] || labels.idle;
   el.className = `sync-status ${sync.status}`;
@@ -152,6 +154,7 @@ let _saveWarned = false;
 let _persistBusy = false;
 let _persistAgain = false;
 let _retrySyncT = null;
+let _syncConflict = null;
 
 function saveState() {
   if (STATE.viewingUid && !STATE.editOther) return;
@@ -211,6 +214,141 @@ function buildViewingPayload() {
   return payload;
 }
 
+function _syncConflictError(message) {
+  const error = new Error(message || 'La nube cambió antes de guardar.');
+  error.code = 'SYNC_CONFLICT';
+  return error;
+}
+
+async function _writeCloudState(uid, payload, remoteUpdatedAt) {
+  const sync = _syncMeta();
+  const row = {user_id: uid, data: payload, updated_at: remoteUpdatedAt};
+
+  if (!sync.remoteExists) {
+    const {data, error} = await sb
+      .from('acervo_state')
+      .insert(row)
+      .select('updated_at')
+      .maybeSingle();
+    if (error) {
+      if (error.code === '23505') throw _syncConflictError();
+      throw error;
+    }
+    if (!data) throw _syncConflictError();
+    return data;
+  }
+
+  let query = sb
+    .from('acervo_state')
+    .update({data: payload, updated_at: remoteUpdatedAt})
+    .eq('user_id', uid);
+  query = sync.remoteUpdatedAt === null || sync.remoteUpdatedAt === undefined
+    ? query.is('updated_at', null)
+    : query.eq('updated_at', sync.remoteUpdatedAt);
+  const {data, error} = await query.select('updated_at').maybeSingle();
+  if (error) throw error;
+  if (!data) throw _syncConflictError();
+  return data;
+}
+
+async function _loadRemoteForConflict(uid) {
+  const {data, error} = await sb
+    .from('acervo_state')
+    .select('data,updated_at')
+    .eq('user_id', uid)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function _showSyncConflict(uid, localPayload) {
+  let remote = null;
+  try {
+    remote = await _loadRemoteForConflict(uid);
+  } catch (_) {}
+  _syncConflict = {
+    uid,
+    localPayload,
+    remoteData: remote && remote.data ? remote.data : null,
+    remoteUpdatedAt: remote ? (remote.updated_at || null) : null,
+    remoteExists: remote ? true : _syncMeta().remoteExists,
+  };
+  _setSync({
+    status: 'conflict',
+    source: 'local',
+    pending: true,
+    remoteExists: remote ? true : _syncMeta().remoteExists,
+    remoteUpdatedAt: remote ? (remote.updated_at || null) : _syncMeta().remoteUpdatedAt,
+    lastError: 'Otro dispositivo guardó cambios antes que este equipo.',
+  });
+  const stamp = document.getElementById('sync-conflict-remote-time');
+  if (stamp) stamp.textContent = remote && remote.updated_at ? remote.updated_at : 'fecha no disponible';
+  if (typeof openModal === 'function') openModal('modal-sync-conflict');
+  else toast('Hay cambios de otro dispositivo. Revisa la sincronización.', 'error');
+}
+
+function closeSyncConflict() {
+  closeAllModals();
+}
+
+function exportSyncConflict() {
+  if (!_syncConflict) return;
+  const contents = JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    local: _syncConflict.localPayload,
+    remote: _syncConflict.remoteData,
+  }, null, 2);
+  const blob = new Blob([contents], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `acervo-sync-conflict-${Date.now()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast('Se exportaron ambas versiones', 'success');
+}
+
+async function resolveSyncConflict(choice) {
+  if (!_syncConflict) return;
+  const conflict = _syncConflict;
+  if (choice === 'export') {
+    exportSyncConflict();
+    return;
+  }
+  if (choice === 'remote') {
+    if (conflict.remoteData) {
+      await _writeLocalCache(Object.assign({}, conflict.remoteData, {
+        syncMeta: {
+          version: 1,
+          localUpdatedAt: _syncMeta().localUpdatedAt || null,
+          remoteUpdatedAt: conflict.remoteUpdatedAt,
+          pending: false,
+        },
+      }));
+    }
+    _syncConflict = null;
+    closeAllModals();
+    await loadState();
+    try { await _writeLocalCache(_payloadWithSync(_statePayload(), {pending: false})); } catch (_) {}
+    try { renderAll(); } catch (_) {}
+    toast('Se conservó la versión de la nube', 'success');
+    return;
+  }
+  if (choice === 'local') {
+    _syncConflict = null;
+    _setSync({
+      status: 'pending',
+      pending: true,
+      remoteExists: conflict.remoteExists,
+      remoteUpdatedAt: conflict.remoteUpdatedAt,
+      lastError: '',
+    });
+    closeAllModals();
+    await _persistNow();
+    if (_syncMeta().status === 'synced') toast('Se conservó la versión de este equipo', 'success');
+  }
+}
+
 async function _persistNow() {
   if (_persistBusy) {
     _persistAgain = true;
@@ -232,18 +370,28 @@ async function _persistNow() {
         ? payload
         : _payloadWithSync(payload, {pending: false, remoteUpdatedAt});
       try {
-        const { error } = await sb
-          .from('acervo_state')
-          .upsert({user_id: targetUid, data: cloudPayload, updated_at: remoteUpdatedAt});
-        if (error) throw error;
+        if (editingOther) {
+          const {error} = await sb
+            .from('acervo_state')
+            .upsert({user_id: targetUid, data: cloudPayload, updated_at: remoteUpdatedAt});
+          if (error) throw error;
+        } else {
+          await _writeCloudState(targetUid, cloudPayload, remoteUpdatedAt);
+        }
         if (!editingOther) {
-          _setSync({status: 'synced', source: 'remote', pending: false, remoteUpdatedAt, lastError: ''});
+          _setSync({status: 'synced', source: 'remote', pending: false, remoteExists: true, remoteUpdatedAt, lastError: ''});
           await _writeLocalCache(_payloadWithSync(_statePayload(), {pending: false, remoteUpdatedAt}));
         }
       } catch (error) {
         if (!editingOther) {
-          _setSync({status: 'error', source: 'local', pending: true, lastError: error && error.message ? error.message : 'No se pudo guardar en la nube.'});
-          await _writeLocalCache(_payloadWithSync(_statePayload(), {pending: true}));
+          const localPayload = _payloadWithSync(_statePayload(), {pending: true});
+          if (error && error.code === 'SYNC_CONFLICT') {
+            await _writeLocalCache(localPayload);
+            await _showSyncConflict(targetUid, localPayload);
+          } else {
+            _setSync({status: 'error', source: 'local', pending: true, lastError: error && error.message ? error.message : 'No se pudo guardar en la nube.'});
+            await _writeLocalCache(localPayload);
+          }
         }
         console.warn('Sin conexión a la nube; guardado solo local.', error);
       }
@@ -299,6 +447,7 @@ function resetLibraryFresh() {
   STATE.indivTpl = null;
   STATE.tribTipos = null;
   STATE.sync = Object.assign({}, _SYNC_DEFAULTS);
+  _syncConflict = null;
   try {
     mmPos = {};
   } catch (_) {}
@@ -306,12 +455,35 @@ function resetLibraryFresh() {
 
 async function loadState() {
   resetLibraryFresh();
-  _setSync({status: 'loading', source: 'none', pending: false, localUpdatedAt: null, remoteUpdatedAt: null, lastError: ''});
+  _setSync({status: 'loading', source: 'none', pending: false, remoteExists: false, localUpdatedAt: null, remoteUpdatedAt: null, lastError: ''});
   try {
     let data = null;
     let dataSource = 'none';
     let remoteReadFailed = false;
     let remoteUpdatedAt = null;
+    let remoteExists = false;
+    let remoteRecord = null;
+    let localData = null;
+    let localSource = 'none';
+    let pendingRemoteConflict = null;
+
+    const cachedUid = localStorage.getItem('kmic_uid');
+    const cacheOk = !STATE.uid || !cachedUid || cachedUid === STATE.uid;
+    if (cacheOk) {
+      try {
+        const idbUid = await idbGet('kmic_uid');
+        if (!STATE.uid || !idbUid || idbUid === STATE.uid) {
+          localData = await idbGet('kmic_data');
+          if (localData) localSource = 'indexeddb';
+        }
+      } catch (_) {}
+    if (!localData && cacheOk) {
+      const raw = localStorage.getItem('kmic_data');
+      if (raw) {
+        localData = JSON.parse(raw);
+        if (localData) localSource = 'localstorage';
+      }
+    }
 
     if (STATE.uid) {
       try {
@@ -321,10 +493,12 @@ async function loadState() {
           .eq('user_id', STATE.uid)
           .maybeSingle();
         if (error) throw error;
+        remoteRecord = remote || null;
+        remoteExists = !!remote;
+        remoteUpdatedAt = remote ? (remote.updated_at || null) : null;
         if (remote && remote.data && Object.keys(remote.data).length) {
           data = remote.data;
           dataSource = 'remote';
-          remoteUpdatedAt = remote.updated_at || null;
         }
       } catch (error) {
         remoteReadFailed = true;
@@ -332,29 +506,31 @@ async function loadState() {
       }
     }
 
-    const cachedUid = localStorage.getItem('kmic_uid');
-    const cacheOk = !STATE.uid || !cachedUid || cachedUid === STATE.uid;
-    if (!data && cacheOk) {
-      try {
-        const idbUid = await idbGet('kmic_uid');
-        if (!STATE.uid || !idbUid || idbUid === STATE.uid) {
-          data = await idbGet('kmic_data');
-          if (data) dataSource = 'indexeddb';
-        }
-      } catch (_) {}
+    const localSync = localData && localData.syncMeta && typeof localData.syncMeta === 'object'
+      ? localData.syncMeta
+      : {};
+    const localPending = !!localSync.pending;
+    const sameRemoteVersion = (localSync.remoteUpdatedAt || null) === (remoteUpdatedAt || null);
+    if (localData && localPending && (!data || sameRemoteVersion)) {
+      data = localData;
+      dataSource = localSource;
+    } else if (localData && localPending && dataSource === 'remote') {
+      data = localData;
+      dataSource = localSource;
+      pendingRemoteConflict = remoteRecord;
+    } else if (!data && localData) {
+      data = localData;
+      dataSource = localSource;
     }
-    if (!data && cacheOk) {
-      const raw = localStorage.getItem('kmic_data');
-      if (raw) {
-        data = JSON.parse(raw);
-        if (data) dataSource = 'localstorage';
-      }
+    if (pendingRemoteConflict && !remoteRecord) {
+      pendingRemoteConflict = null;
     }
     if (!data) {
       _setSync({
         status: remoteReadFailed ? 'error' : 'idle',
         source: 'none',
         pending: false,
+        remoteExists,
         lastError: remoteReadFailed ? 'No se pudo leer Supabase; no hay caché disponible.' : '',
       });
       ensureModelos();
@@ -365,16 +541,32 @@ async function loadState() {
 
     const cachedSync = data.syncMeta && typeof data.syncMeta === 'object' ? data.syncMeta : {};
     _setSync({
-      status: dataSource === 'remote' ? 'synced' : (cachedSync.pending ? 'pending' : 'local'),
+      status: pendingRemoteConflict ? 'conflict' : (dataSource === 'remote' ? 'synced' : (cachedSync.pending ? 'pending' : 'local')),
       source: dataSource,
       pending: dataSource === 'remote' ? false : !!cachedSync.pending,
+      remoteExists,
       localUpdatedAt: cachedSync.localUpdatedAt || null,
       remoteUpdatedAt: remoteUpdatedAt || cachedSync.remoteUpdatedAt || null,
-      lastError: dataSource === 'remote' ? '' : (remoteReadFailed ? 'Trabajando con la copia local.' : ''),
+      lastError: pendingRemoteConflict
+        ? 'Otro dispositivo guardó cambios antes que este equipo.'
+        : (dataSource === 'remote' ? '' : (remoteReadFailed ? 'Trabajando con la copia local.' : '')),
     });
-    if (dataSource !== 'remote' && cachedSync.pending && STATE.uid) {
+    if (dataSource !== 'remote' && cachedSync.pending && STATE.uid && !pendingRemoteConflict) {
       clearTimeout(_retrySyncT);
       _retrySyncT = setTimeout(retryPendingSync, 1000);
+    }
+
+    if (pendingRemoteConflict) {
+      _syncConflict = {
+        uid: STATE.uid,
+        localPayload: data,
+        remoteData: pendingRemoteConflict.data || null,
+        remoteUpdatedAt: pendingRemoteConflict.updated_at || null,
+        remoteExists: true,
+      };
+      const stamp = document.getElementById('sync-conflict-remote-time');
+      if (stamp) stamp.textContent = pendingRemoteConflict.updated_at || 'fecha no disponible';
+      if (typeof openModal === 'function') setTimeout(() => openModal('modal-sync-conflict'), 0);
     }
 
     if (data.subjects) {

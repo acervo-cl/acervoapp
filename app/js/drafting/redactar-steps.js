@@ -143,7 +143,12 @@ function rwFilterCausas(v) {
 function rwSelectCausa(id) {
   const e = EXPEDIENTES.find((x) => x.id === id);
   if (e) {
-    _RW.cx = cxFromExpediente(e);
+    const previous = _RW.cx || {};
+    _RW.cx = Object.assign(cxFromExpediente(e), {
+      colaboradores: Array.isArray(previous.colaboradores) ? previous.colaboradores.slice() : [],
+      colaboradorCargos: Object.assign({}, previous.colaboradorCargos || {}),
+      colaboradorData: Object.assign({}, previous.colaboradorData || {})
+    });
     _RW._autoApplied = false;
     rwSaveDraft();
     renderRW();
@@ -330,19 +335,31 @@ function rwSetPTTexto(v) {
 
 function rwToggleColab(id) {
   _RW.cx.colaboradores = _RW.cx.colaboradores || [];
-  const i = _RW.cx.colaboradores.indexOf(id);
+  const key = String(id);
+  const i = _RW.cx.colaboradores.findIndex((selectedId) => String(selectedId) === key);
   if (i >= 0) {
     _RW.cx.colaboradores.splice(i, 1);
-    if (_RW.cx.colaboradorCargos) delete _RW.cx.colaboradorCargos[id];
+    if (_RW.cx.colaboradorCargos) delete _RW.cx.colaboradorCargos[key];
+    if (_RW.cx.colaboradorData) delete _RW.cx.colaboradorData[key];
+  } else {
+    _RW.cx.colaboradores.push(key);
+    const c = allColaboradores().find((item) => String(item.id) === key);
+    if (c) {
+      _RW.cx.colaboradorData = _RW.cx.colaboradorData || {};
+      _RW.cx.colaboradorData[key] = Object.assign({}, c);
+    }
   }
-  else _RW.cx.colaboradores.push(id);
   rwSaveDraft();
   renderRW();
 }
 
 function rwSetColabCargo(id, cargo) {
   _RW.cx.colaboradorCargos = _RW.cx.colaboradorCargos || {};
-  _RW.cx.colaboradorCargos[id] = cargo === 'apoderado' ? 'apoderado' : 'abogado';
+  const key = String(id);
+  _RW.cx.colaboradorCargos[key] = cargo === 'apoderado' ? 'apoderado' : 'abogado';
+  if (_RW.cx.colaboradorData && _RW.cx.colaboradorData[key]) {
+    _RW.cx.colaboradorData[key].cargo = _RW.cx.colaboradorCargos[key];
+  }
   rwSaveDraft();
   if (typeof rwUpdatePreview === 'function') rwUpdatePreview();
 }
@@ -357,8 +374,9 @@ function rwPatrocinantes() {
   const colabs = allColaboradores();
   const cargos = (_RW.cx.colaboradorCargos || {});
   const chips = colabs.length ? colabs.map((c) => {
-    const selected = sel.includes(c.id);
-    const cargo = cargos[c.id] || c.cargo || 'abogado';
+    const key = String(c.id);
+    const selected = sel.some((selectedId) => String(selectedId) === key);
+    const cargo = cargos[key] || cargos[c.id] || c.cargo || 'abogado';
     return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><label class="rw-check" style="margin:0;flex:1"><input type="checkbox" ${selected ? 'checked' : ''} onchange="rwToggleColab('${c.id}')"> ${escapeHtml(c.nombre)}${c._team ? ' <span style="font-size:10px;color:var(--gold3)">equipo</span>' : ''}</label>${selected ? `<select class="form-select" style="width:auto;min-width:120px;padding:5px 8px;font-size:12px" onchange="rwSetColabCargo('${c.id}',this.value)"><option value="abogado" ${cargo==='abogado'?'selected':''}>Abogado</option><option value="apoderado" ${cargo==='apoderado'?'selected':''}>Apoderado</option></select>` : ''}</div>`;
   }).join('') : '<span style="font-size:12px;color:var(--gray2)">No tienes equipo. Invita colegas en 🤝 Mi equipo (por correo) o agrega externos en 👤 → Colaboradores externos.</span>';
   return `<div class="rw-presuma-box"><div class="partes-h">🤝 Patrocinantes del PYP</div><div style="font-size:11px;color:var(--gray2);margin-bottom:6px">Tú vas siempre. Marca a los de tu equipo y define si cada uno actúa como abogado o apoderado.</div><div class="mdl-otrosis" style="display:flex;flex-direction:column;gap:7px">${chips}</div></div>`;

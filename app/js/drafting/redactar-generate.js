@@ -291,6 +291,9 @@ function rwGenerarMasivo(modo) {
     cx.mandato = _RW.cx.mandato;
     if (_RW.cx.rolProcesal) cx.rolProcesal = _RW.cx.rolProcesal;
     cx.esCAJ = _RW.cx.esCAJ;
+    cx.colaboradores = Array.isArray(_RW.cx.colaboradores) ? _RW.cx.colaboradores.slice() : [];
+    cx.colaboradorCargos = Object.assign({}, _RW.cx.colaboradorCargos || {});
+    cx.colaboradorData = Object.assign({}, _RW.cx.colaboradorData || {});
     const pp = _masivoPartesDe(e);
     if (Object.keys(pp).length) cx.partes = pp;
     const texto = generarEscritoTexto(cx, _RW.escs);

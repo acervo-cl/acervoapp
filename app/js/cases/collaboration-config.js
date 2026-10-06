@@ -189,7 +189,10 @@ function socialCollaborators() { return _connections.filter(c => c.status === 'a
 
 function teamColaboradores() {
   return socialCollaborators().map((p) => {
-    const f = (p && p.firma) || {};
+    let f = (p && p.firma) || {};
+    if (typeof f === 'string') {
+      try { f = JSON.parse(f) || {}; } catch (_) { f = {}; }
+    }
     return {
       id: p.id,
       nombre: f.nombre || p.display_name || p.email || '',

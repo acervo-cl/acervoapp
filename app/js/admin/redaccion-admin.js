@@ -542,7 +542,18 @@ function rwAddRolePerson(base){ _RW.cx.partes=_RW.cx.partes||{}; let i=2; while(
 function rwSetVar(mid,vid,val){ const e=_RW.escs.find(x=>x.modeloId===mid); if(e){ e.vars=e.vars||{}; e.vars[vid]=val; } rwSaveDraft(); rwUpdatePreview(); }
 function rwSetCx(k,val){ _RW.cx[k]=val; rwSaveDraft(); }
 function rwSetMode(m){ _RW.mode=m; _RW._autoApplied=false; renderRW(); }
-function rwPickExp(id){ const e=EXPEDIENTES.find(x=>x.id===id); _RW.cx = e ? cxFromExpediente(e) : Object.assign(_RW.cx,{expId:null}); _RW._autoApplied=false; rwSaveDraft(); renderRW(); }
+function rwPickExp(id){
+  const e=EXPEDIENTES.find(x=>x.id===id);
+  if(e){
+    const previous=_RW.cx||{};
+    _RW.cx=Object.assign(cxFromExpediente(e),{
+      colaboradores:Array.isArray(previous.colaboradores)?previous.colaboradores.slice():[],
+      colaboradorCargos:Object.assign({},previous.colaboradorCargos||{}),
+      colaboradorData:Object.assign({},previous.colaboradorData||{})
+    });
+  } else _RW.cx=Object.assign(_RW.cx,{expId:null});
+  _RW._autoApplied=false; rwSaveDraft(); renderRW();
+}
 function rwSetPoder(v){ _RW.cx.tienePoder=v; _RW._autoApplied=false; renderRW(); }
 function rwToggleModel(id){
   const i=_RW.escs.findIndex(e=>e.modeloId===id);
