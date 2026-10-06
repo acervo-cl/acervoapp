@@ -1086,6 +1086,31 @@ let _sharedCausaIds = new Set();     // ids de causas compartidas visibles (prop
 let _sharedAddedCliente = false;     // marca si al cargar causas compartidas se agregó algún cliente nuevo
 function _causaRole(e){ return (e && e.shared) ? (e.myRole||'viewer') : 'owner'; }
 function _causaCanEdit(e){ const r=_causaRole(e); return r==='owner'||r==='editor'; }
+function _findLocalCausaForShared(id, ex){
+  return EXPEDIENTES.find(x=>String(x.id)===String(id))
+    || (ex&&ex.id ? EXPEDIENTES.find(x=>String(x.id)===String(ex.id)) : null);
+}
+function _dedupeLocalCausas(){
+  const seen=new Set();
+  for(let i=0;i<EXPEDIENTES.length;){
+    const id=String(EXPEDIENTES[i].id||'');
+    if(id && seen.has(id)){ EXPEDIENTES.splice(i,1); continue; }
+    if(id) seen.add(id);
+    i++;
+  }
+}
+function _removeCausaAliases(ids,keep){
+  const aliases=new Set(ids.filter(Boolean).map(String));
+  for(let i=EXPEDIENTES.length-1;i>=0;i--){
+    if(EXPEDIENTES[i]!==keep && aliases.has(String(EXPEDIENTES[i].id||''))) EXPEDIENTES.splice(i,1);
+  }
+}
+function _mergeSharedCausaLocal(r, ex, role){
+  const existing=_findLocalCausaForShared(r.id,ex);
+  const sharedData={...ex,id:r.id,shared:true,myRole:role,sharedOwner:r.owner_id};
+  if(existing){ Object.assign(existing,sharedData); _removeCausaAliases([r.id,ex.id],existing); return existing; }
+  const copy={...sharedData}; EXPEDIENTES.push(copy); return copy;
+}
 async function toggleShareCreds(id,on){ const e=EXPEDIENTES.find(x=>x.id===id); if(!e) return; e.shareCreds=on; saveState();
   if(on && !confirm('¿Compartir las Claves Únicas de los clientes de esta causa con quienes tengan acceso?\n\nRecuerda: es una credencial del Estado.')){ e.shareCreds=false; saveState(); openExpShare(id); return; }
   if(_sharedCausaIds.has(id)) await pushSharedCausa(id);
@@ -1116,6 +1141,7 @@ async function loadSharedCausas(){
   if(typeof sb==='undefined'||!sb||!STATE.uid) return;
   for(let i=EXPEDIENTES.length-1;i>=0;i--) if(EXPEDIENTES[i].shared) EXPEDIENTES.splice(i,1);
   for(let i=EXDOCS.length-1;i>=0;i--) if(EXDOCS[i].shared) EXDOCS.splice(i,1);
+  _dedupeLocalCausas();
   _sharedCausaIds=new Set();
   try{
     const {data:mem}=await sb.from('shared_causa_members').select('causa_id,role').eq('user_id',STATE.uid);
@@ -1126,11 +1152,19 @@ async function loadSharedCausas(){
       _sharedCausaIds.add(r.id);
       const d=r.data||{}; const ex=d.expediente; if(!ex) return;
       if(r.owner_id===STATE.uid){
-        if(!EXPEDIENTES.find(x=>x.id===r.id)){ EXPEDIENTES.push({...ex, shared:false}); (d.exdocs||[]).forEach(x=>{ if(!EXDOCS.find(y=>y.id===x.id)) EXDOCS.push(x); }); }
+        const existing=_findLocalCausaForShared(r.id,ex);
+        if(!existing){
+          EXPEDIENTES.push({...ex,id:r.id,shared:false});
+        }else{
+          existing.id=r.id;
+          delete existing.shared; delete existing.myRole; delete existing.sharedOwner;
+          _removeCausaAliases([r.id,ex.id],existing);
+        }
+        (d.exdocs||[]).forEach(x=>{ if(!EXDOCS.find(y=>y.id===x.id)) EXDOCS.push(x); });
         return;
       }
       const role=roleById[r.id]||'viewer';
-      EXPEDIENTES.push({...ex, id:r.id, shared:true, myRole:role, sharedOwner:r.owner_id});
+      _mergeSharedCausaLocal(r,ex,role);
       (d.exdocs||[]).forEach(x=>{ if(!EXDOCS.find(y=>y.id===x.id)) EXDOCS.push({...x, shared:true}); });
       // el cliente de la causa se agrega a MI base de clientes (una copia), si no lo tengo
       const nrm=s=>(s||'').replace(/[.\-\s]/g,'').toLowerCase();
