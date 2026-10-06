@@ -1,3 +1,74 @@
+const _SYNC_DEFAULTS = {
+  status: 'idle',
+  source: 'none',
+  pending: false,
+  localUpdatedAt: null,
+  remoteUpdatedAt: null,
+  lastError: '',
+};
+
+function _syncMeta() {
+  if (!STATE.sync || typeof STATE.sync !== 'object') STATE.sync = {};
+  Object.keys(_SYNC_DEFAULTS).forEach((key) => {
+    if (STATE.sync[key] === undefined) STATE.sync[key] = _SYNC_DEFAULTS[key];
+  });
+  return STATE.sync;
+}
+
+function _renderSyncIndicator() {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const sync = _syncMeta();
+  const labels = {
+    idle: 'Sin sincronizar',
+    loading: 'Cargando',
+    local: 'Solo en este equipo',
+    pending: 'Pendiente de sincronizar',
+    synced: 'Sincronizado',
+    error: 'Error de sincronización',
+  };
+  const label = labels[sync.status] || labels.idle;
+  el.className = `sync-status ${sync.status}`;
+  el.title = sync.lastError ? `${label}: ${sync.lastError}` : label;
+  const text = el.querySelector('.sync-status-label');
+  if (text) text.textContent = label;
+}
+
+function _setSync(patch) {
+  Object.assign(_syncMeta(), patch || {});
+  _renderSyncIndicator();
+}
+
+function _payloadWithSync(payload, patch) {
+  const sync = _syncMeta();
+  return Object.assign({}, payload, {
+    syncMeta: Object.assign({
+      version: 1,
+      localUpdatedAt: sync.localUpdatedAt || null,
+      remoteUpdatedAt: sync.remoteUpdatedAt || null,
+      pending: !!sync.pending,
+    }, patch || {}),
+  });
+}
+
+async function _writeLocalCache(payload) {
+  let idbOk = false;
+  try {
+    await idbPut('kmic_data', payload);
+    await idbPut('kmic_uid', STATE.uid || '');
+    idbOk = true;
+  } catch (_) {}
+  try {
+    localStorage.setItem('kmic_data', JSON.stringify(payload));
+    localStorage.setItem('kmic_uid', STATE.uid || '');
+  } catch (_) {
+    if (!idbOk && !_saveWarned) {
+      _saveWarned = true;
+      toast('No se pudo guardar localmente: almacenamiento lleno.', 'error');
+    }
+  }
+}
+
 function _statePayload() {
   return {
     subjects: SUBJECTS.filter((s) => String(s.id) !== '__shared__'),
@@ -67,14 +138,31 @@ function _statePayload() {
     removedTiposDoc: STATE.removedTiposDoc,
     confidAccepted: STATE.confidAccepted,
     tiposDoc: TIPOSDOC,
+    syncMeta: {
+      version: 1,
+      localUpdatedAt: _syncMeta().localUpdatedAt || null,
+      remoteUpdatedAt: _syncMeta().remoteUpdatedAt || null,
+      pending: !!_syncMeta().pending,
+    },
   };
 }
 
 let _persistT = null;
 let _saveWarned = false;
+let _persistBusy = false;
+let _persistAgain = false;
+let _retrySyncT = null;
 
 function saveState() {
   if (STATE.viewingUid && !STATE.editOther) return;
+  if (!STATE.viewingUid) {
+    _setSync({
+      status: 'pending',
+      pending: true,
+      localUpdatedAt: new Date().toISOString(),
+      lastError: '',
+    });
+  }
   clearTimeout(_persistT);
   _persistT = setTimeout(_persistNow, 350);
   syncMaster();
@@ -124,35 +212,48 @@ function buildViewingPayload() {
 }
 
 async function _persistNow() {
+  if (_persistBusy) {
+    _persistAgain = true;
+    return;
+  }
+  _persistBusy = true;
   const editingOther = !!(STATE.viewingUid && STATE.editOther);
   const targetUid = editingOther ? STATE.viewingUid : STATE.uid;
   const payload = editingOther ? buildViewingPayload() : _statePayload();
 
-  if (!editingOther) {
-    let idbOk = false;
-    try {
-      await idbPut('kmic_data', payload);
-      idbOk = true;
-    } catch (_) {}
-    try {
-      localStorage.setItem('kmic_data', JSON.stringify(payload));
-      localStorage.setItem('kmic_uid', STATE.uid || '');
-    } catch (_) {
-      if (!idbOk && !_saveWarned) {
-        _saveWarned = true;
-        toast('No se pudo guardar localmente: almacenamiento lleno.', 'error');
+  try {
+    if (!editingOther) {
+      await _writeLocalCache(_payloadWithSync(payload, {pending: true}));
+    }
+
+    if (targetUid) {
+      const remoteUpdatedAt = new Date().toISOString();
+      const cloudPayload = editingOther
+        ? payload
+        : _payloadWithSync(payload, {pending: false, remoteUpdatedAt});
+      try {
+        const { error } = await sb
+          .from('acervo_state')
+          .upsert({user_id: targetUid, data: cloudPayload, updated_at: remoteUpdatedAt});
+        if (error) throw error;
+        if (!editingOther) {
+          _setSync({status: 'synced', source: 'remote', pending: false, remoteUpdatedAt, lastError: ''});
+          await _writeLocalCache(_payloadWithSync(_statePayload(), {pending: false, remoteUpdatedAt}));
+        }
+      } catch (error) {
+        if (!editingOther) {
+          _setSync({status: 'error', source: 'local', pending: true, lastError: error && error.message ? error.message : 'No se pudo guardar en la nube.'});
+          await _writeLocalCache(_payloadWithSync(_statePayload(), {pending: true}));
+        }
+        console.warn('Sin conexión a la nube; guardado solo local.', error);
       }
     }
-  }
-
-  if (targetUid) {
-    try {
-      const { error } = await sb
-        .from('acervo_state')
-        .upsert({ user_id: targetUid, data: payload, updated_at: new Date().toISOString() });
-      if (error) console.warn('Guardado en nube falló:', error.message);
-    } catch (_) {
-      console.warn('Sin conexión a la nube; guardado solo local.');
+  } finally {
+    _persistBusy = false;
+    if (_persistAgain) {
+      _persistAgain = false;
+      clearTimeout(_persistT);
+      _persistT = setTimeout(_persistNow, 0);
     }
   }
 }
@@ -197,6 +298,7 @@ function resetLibraryFresh() {
   STATE.rolesProcesales = null;
   STATE.indivTpl = null;
   STATE.tribTipos = null;
+  STATE.sync = Object.assign({}, _SYNC_DEFAULTS);
   try {
     mmPos = {};
   } catch (_) {}
@@ -204,18 +306,28 @@ function resetLibraryFresh() {
 
 async function loadState() {
   resetLibraryFresh();
+  _setSync({status: 'loading', source: 'none', pending: false, localUpdatedAt: null, remoteUpdatedAt: null, lastError: ''});
   try {
     let data = null;
+    let dataSource = 'none';
+    let remoteReadFailed = false;
+    let remoteUpdatedAt = null;
 
     if (STATE.uid) {
       try {
         const { data: remote, error } = await sb
           .from('acervo_state')
-          .select('data')
+          .select('data,updated_at')
           .eq('user_id', STATE.uid)
           .maybeSingle();
-        if (!error && remote && remote.data && Object.keys(remote.data).length) data = remote.data;
-      } catch (_) {
+        if (error) throw error;
+        if (remote && remote.data && Object.keys(remote.data).length) {
+          data = remote.data;
+          dataSource = 'remote';
+          remoteUpdatedAt = remote.updated_at || null;
+        }
+      } catch (error) {
+        remoteReadFailed = true;
         console.warn('No se pudo leer de la nube; usando caché local.');
       }
     }
@@ -224,18 +336,45 @@ async function loadState() {
     const cacheOk = !STATE.uid || !cachedUid || cachedUid === STATE.uid;
     if (!data && cacheOk) {
       try {
-        data = await idbGet('kmic_data');
+        const idbUid = await idbGet('kmic_uid');
+        if (!STATE.uid || !idbUid || idbUid === STATE.uid) {
+          data = await idbGet('kmic_data');
+          if (data) dataSource = 'indexeddb';
+        }
       } catch (_) {}
     }
     if (!data && cacheOk) {
       const raw = localStorage.getItem('kmic_data');
-      if (raw) data = JSON.parse(raw);
+      if (raw) {
+        data = JSON.parse(raw);
+        if (data) dataSource = 'localstorage';
+      }
     }
     if (!data) {
+      _setSync({
+        status: remoteReadFailed ? 'error' : 'idle',
+        source: 'none',
+        pending: false,
+        lastError: remoteReadFailed ? 'No se pudo leer Supabase; no hay caché disponible.' : '',
+      });
       ensureModelos();
       migrateClientes();
       applyAppFont();
       return;
+    }
+
+    const cachedSync = data.syncMeta && typeof data.syncMeta === 'object' ? data.syncMeta : {};
+    _setSync({
+      status: dataSource === 'remote' ? 'synced' : (cachedSync.pending ? 'pending' : 'local'),
+      source: dataSource,
+      pending: dataSource === 'remote' ? false : !!cachedSync.pending,
+      localUpdatedAt: cachedSync.localUpdatedAt || null,
+      remoteUpdatedAt: remoteUpdatedAt || cachedSync.remoteUpdatedAt || null,
+      lastError: dataSource === 'remote' ? '' : (remoteReadFailed ? 'Trabajando con la copia local.' : ''),
+    });
+    if (dataSource !== 'remote' && cachedSync.pending && STATE.uid) {
+      clearTimeout(_retrySyncT);
+      _retrySyncT = setTimeout(retryPendingSync, 1000);
     }
 
     if (data.subjects) {
@@ -332,4 +471,17 @@ async function loadState() {
   ensureModelos();
   migrateClientes();
   applyAppFont();
+  _renderSyncIndicator();
 }
+
+function retryPendingSync() {
+  const sync = _syncMeta();
+  if (!STATE.uid || STATE.viewingUid || !sync.pending || !navigator.onLine) return;
+  clearTimeout(_retrySyncT);
+  _retrySyncT = setTimeout(_persistNow, 100);
+}
+
+window.addEventListener('online', retryPendingSync);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') retryPendingSync();
+});

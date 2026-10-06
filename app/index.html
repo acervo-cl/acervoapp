@@ -64,6 +64,13 @@ button{font-family:inherit}
 .topbar-center-slot{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .topbar-icon-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 11px;color:var(--gray2);font-size:15px;cursor:pointer;transition:all .2s;flex-shrink:0}
 .topbar-icon-btn:hover{border-color:var(--gold);color:var(--gold)}
+.sync-status{display:flex;align-items:center;gap:6px;color:var(--gray2);font-size:11px;white-space:nowrap;min-width:0}
+.sync-status .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--gray2);flex:0 0 auto}
+.sync-status.pending .sync-dot{background:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.14)}
+.sync-status.synced .sync-dot{background:#65c18c}
+.sync-status.error .sync-dot{background:#e07070;box-shadow:0 0 0 3px rgba(224,112,112,.14)}
+.sync-status.loading .sync-dot{background:#79aee8;animation:sync-pulse 1.2s ease-in-out infinite}
+@keyframes sync-pulse{50%{opacity:.35}}
 #modal-stats .stats-bar{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:0}
 .view-switcher{display:flex;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
 .view-btn{padding:8px 12px;background:none;border:none;color:var(--gray2);cursor:pointer;font-size:15px;transition:all .2s}
@@ -784,6 +791,8 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   .search-btn .sb-ico{font-size:18px;margin:0}
   .topbar-icon-btn{order:4}
   .topbar-avatar{order:4}
+  .sync-status{order:4}
+  .sync-status-label{display:none}
   /* Barra 2: Inicio/Trabajo/Estudio en fila propia, SOLO iconos */
   .primary-nav{order:5;flex:1 0 100%;justify-content:center;gap:10px}
   .pnav-btn{flex:0 0 auto;padding:9px 18px;font-size:18px}
@@ -1784,6 +1793,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
     <div class="topbar-spacer"></div>
     <select id="lib-switcher" class="admin-ctrl" style="display:none" title="Ver biblioteca de un usuario" onchange="onLibSwitch(this.value)"></select>
     <div id="admin-badge-wrap"></div>
+    <div id="sync-status" class="sync-status" role="status" aria-live="polite" title="Estado de sincronización"><span class="sync-dot"></span><span class="sync-status-label">Sincronizado</span></div>
     <div class="primary-nav" id="primary-nav">
       <button class="pnav-btn active" data-sp="inicio" onclick="openSpace('inicio')" title="Inicio · tu escritorio: todo junto">🏠 <span>Inicio</span></button>
       <button class="pnav-btn" data-sp="agenda" onclick="openSpace('agenda')" title="Agenda · fechas, plazos y recordatorios">📅 <span>Agenda</span></button>
@@ -2652,6 +2662,7 @@ function findDoc(id){ return DOCUMENTS.find(x=>x.id===id) || APUNTES.find(x=>x.i
 const STATE = {
   user: null,
   uid: null,          // id del usuario en Supabase (nube)
+  sync: {status:'idle', source:'none', pending:false, localUpdatedAt:null, remoteUpdatedAt:null, lastError:''},
   role: 'user',       // 'admin' | 'user'
   approved: false,    // si el admin ya le dio acceso
   profiles: [],       // lista de usuarios (solo la usa el admin)

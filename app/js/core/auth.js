@@ -164,6 +164,7 @@ async function doLogout() {
   } catch (e) {}
   try {
     await idbDel('kmic_data');
+    await idbDel('kmic_uid');
   } catch (e) {}
   try {
     localStorage.removeItem('kmic_data');
