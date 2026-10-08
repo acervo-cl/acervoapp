@@ -477,6 +477,7 @@ async function loadState() {
           if (localData) localSource = 'indexeddb';
         }
       } catch (_) {}
+    }
     if (!localData && cacheOk) {
       const raw = localStorage.getItem('kmic_data');
       if (raw) {

@@ -445,11 +445,10 @@ body.is-admin .doc-card:hover .card-admin-btns{display:flex}
 .search-footer kbd{background:rgba(255,255,255,.08);border-radius:3px;padding:1px 5px;font-family:inherit}
 
 /* MODALS */
-/* Pantalla completa de un pop-up (Redactar / editor de modelos) */
-.modal-fs{display:none;position:absolute;top:10px;right:12px;z-index:10;width:30px;height:30px;align-items:center;justify-content:center;
-  background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);color:var(--gold);border-radius:8px;cursor:pointer;font-size:13px}
-.modal-fs:hover{background:rgba(201,168,76,.25)}
-@media(min-width:761px){ .modal-fs{display:flex} }
+.modal-window-controls{position:absolute;top:9px;right:11px;z-index:10;display:flex;gap:5px;padding:3px;background:rgba(17,31,53,.9);border:1px solid rgba(201,168,76,.22);border-radius:9px;box-shadow:0 5px 14px rgba(0,0,0,.22)}
+.modal-window-btn{width:28px;height:27px;padding:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--gray2);cursor:pointer;font-size:13px;line-height:1}
+.modal-window-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.12)}
+.modal-window-close:hover{border-color:#e07070;color:#f19a9a;background:rgba(224,112,112,.12)}
 .modal.fullscreen{top:0;left:0;transform:none;width:100vw!important;max-width:100vw!important;height:100vh;height:100dvh;max-height:100dvh;
   border-radius:0;border:none;padding:18px 26px}
 .modal.fullscreen .ins-bar{max-height:none}          /* la paleta se ve completa, como barra ancha */
@@ -458,11 +457,13 @@ body.is-admin .doc-card:hover .card-admin-btns{display:flex}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;display:none;backdrop-filter:blur(3px)}
 .modal-backdrop.open{display:block}
 .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--navy2);border:1px solid rgba(201,168,76,.2);border-radius:16px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;z-index:601;display:none;box-shadow:0 32px 80px rgba(0,0,0,.5)}
+.modal > .modal-window-controls + .modal-title,
+.modal > .modal-window-controls ~ * .modal-title{padding-right:150px}
 /* Modal en modo VENTANA: se puede mover (por el título) y redimensionar (esquina) — como las ventanas de documentos */
 .modal.win-mode{transform:none!important;top:auto;left:auto;resize:both;min-width:380px;min-height:260px;max-height:92vh}
 .modal.win-mode .modal-title{cursor:move;user-select:none}
 .modal.win-mode .modal-title::after{content:' ⠿';opacity:.4;font-size:13px}
-@media(max-width:760px){ .modal.win-mode{resize:none;transform:none!important;left:0!important;top:auto!important} }
+@media(max-width:760px){ .modal-window-controls{top:8px;right:8px} .modal-window-btn{width:30px;height:29px} .modal.win-mode{resize:none;transform:none!important;left:0!important;top:auto!important} }
 .modal.open{display:block}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:20px;color:var(--white)}
 .form-row{margin-bottom:14px}
@@ -1563,7 +1564,6 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 .rw-head-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .rw-head-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;line-height:1;border:none;background:none;color:var(--gray2);cursor:pointer;font-size:16px;padding:0}
 .rw-head-btn:hover{color:var(--white)}
-#modal-redactar .modal-fs{display:none}
 .rw-toggle{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .rw-pill{background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.18);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--gray);cursor:pointer}
 .rw-pill.on{background:rgba(201,168,76,.18);border-color:var(--gold);color:var(--gold);font-weight:700}
@@ -2397,7 +2397,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <div class="modal" id="modal-event" style="width:520px"><div id="event-body"></div></div>
 
 <!-- REDACCIÓN: asistente, modelos, partes -->
-<div class="modal" id="modal-redactar" style="width:940px"><button class="modal-fs" onclick="toggleFS('modal-redactar')" title="Pantalla completa (Esc para salir)">⛶</button><div id="redactar-body"></div></div>
+<div class="modal" id="modal-redactar" style="width:940px"><div id="redactar-body"></div></div>
 <div class="modal" id="modal-tools" style="width:520px"><div id="tools-body"></div></div>
 <div class="modal" id="modal-indiv" style="width:620px"><div id="indiv-body"></div></div>
 <div class="modal" id="modal-modelos" style="width:760px">
@@ -2411,7 +2411,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <div class="modal" id="modal-pegar" style="width:600px"><div id="pegar-body"></div></div>
 <div class="modal" id="modal-membrete" style="width:auto;max-width:96vw"><div id="membrete-ed-body"></div></div>
 <div class="modal" id="modal-nueva" style="width:560px"><div id="nueva-body"></div></div>
-<div class="modal" id="modal-modeled" style="width:900px"><button class="modal-fs" onclick="toggleFS('modal-modeled')" title="Pantalla completa (Esc para salir)">⛶</button><div id="modeled-body"></div></div>
+<div class="modal" id="modal-modeled" style="width:900px"><div id="modeled-body"></div></div>
 <div class="modal" id="modal-partes" style="width:720px"><div id="partes-body"></div></div>
 <div class="modal" id="modal-parte-edit" style="width:580px"><div id="parte-edit-body"></div></div>
 <div class="modal" id="modal-import" style="width:680px"><div id="import-body"></div></div>
@@ -2430,6 +2430,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <div class="modal" id="modal-comparece" style="width:560px"><div id="comparece-body"></div></div>
 <div class="modal" id="modal-import-mdl" style="width:640px"><div id="import-mdl-body"></div></div>
 <div class="modal" id="modal-mdlfmt" style="width:520px"><div id="mdlfmt-body"></div></div>
+<div class="modal" id="modal-admin-user" style="width:520px"><div id="admin-user-body"></div></div>
 
 <div class="modal" id="modal-subject">
   <div class="modal-title" id="modal-subject-title">Nueva Carpeta</div>
@@ -2982,7 +2983,7 @@ function _fmtBar(id, tokens){
 // ════════════════════════════════════════
 document.addEventListener('keydown', e => {
   if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); openSearch(); }
-  if (e.key==='Escape') { const rm=document.getElementById('modal-redactar'); if(rm&&rm.classList.contains('open')&&_RW) rwSaveDraft(); closeSearch(); closeAllModals(); closeAvatarMenu(); closeTooltip(); closeNoteSheet(); closeIndex(); closeExpediente(); document.getElementById('study-overlay').classList.remove('open'); }
+  if (e.key==='Escape') { const activeModal=document.querySelector('.modal.open'); if(activeModal&&activeModal.classList.contains('fullscreen')) { toggleFS(activeModal.id); return; } const rm=document.getElementById('modal-redactar'); if(rm&&rm.classList.contains('open')&&_RW) rwSaveDraft(); closeSearch(); closeAllModals(); closeAvatarMenu(); closeTooltip(); closeNoteSheet(); closeIndex(); closeExpediente(); document.getElementById('study-overlay').classList.remove('open'); }
   // atajos de estudio: Espacio revela, 1/2/3 califican
   if (document.getElementById('study-overlay').classList.contains('open')) {
     if (e.code==='Space'){ e.preventDefault(); document.getElementById('study-show-btn').style.display!=='none'?revealCard():null; }
