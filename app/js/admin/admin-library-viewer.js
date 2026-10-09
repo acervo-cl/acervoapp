@@ -23,13 +23,13 @@ function applyLibraryData(d) {
   MODELOS.length = 0; (d.modelos || []).forEach(m => MODELOS.push(m));
   CLIENTES.length = 0; (d.clientes || []).forEach(c => CLIENTES.push(c));
   EMPRESAS.length = 0; (d.empresas || []).forEach(e => EMPRESAS.push(e));
-  STATE.perfilAbogado = Object.assign({ nombre: '', rut: '', domicilio: '', email: '', cargo: 'Abogado' }, d.perfilAbogado || {});
   STATE.indivTpl = d.indivTpl || null;
   STATE.tabs = Array.isArray(d.tabs) ? d.tabs : [];
   STATE.tabActive = d.tabActive || null;
   STATE.redaccionDraft = d.redaccionDraft || null;
   STATE.redFormat = Object.assign({ font: 'Times New Roman', size: 12, lineHeight: 1.5, align: 'justify' }, d.redFormat || {});
-  STATE.membrete = Object.assign({ logo: '', pie: '' }, d.membrete || {});
+  // The viewed library must not replace the authenticated user's profile or letterhead.
+  // Those fields belong to the current session and are rendered from STATE.perfilAbogado/membrete.
   STATE.expView = d.expView || 'grid';
   STATE.recordatorios = d.recordatorios || [];
   STATE.todos = d.todos || [];

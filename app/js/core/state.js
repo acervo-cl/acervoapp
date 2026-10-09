@@ -197,11 +197,13 @@ function buildViewingPayload() {
   payload.modelos = MODELOS;
   payload.clientes = CLIENTES;
   payload.empresas = EMPRESAS;
-  payload.perfilAbogado = STATE.perfilAbogado;
+  // Keep the viewed owner's profile data when editing their library. The admin's
+  // profile must never be copied into another user's persisted state.
+  payload.perfilAbogado = (STATE.viewingRaw && STATE.viewingRaw.perfilAbogado) || payload.perfilAbogado || {};
   payload.indivTpl = STATE.indivTpl;
   payload.redaccionDraft = STATE.redaccionDraft;
   payload.redFormat = STATE.redFormat;
-  payload.membrete = STATE.membrete;
+  payload.membrete = (STATE.viewingRaw && STATE.viewingRaw.membrete) || payload.membrete || {};
   payload.expView = STATE.expView;
   payload.recordatorios = STATE.recordatorios;
   payload.todos = STATE.todos;

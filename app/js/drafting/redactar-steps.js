@@ -93,7 +93,6 @@ function rwStepDatos() {
   const pz = MODELOS.find((x) => x.id === (_RW.escs[0] || {}).modeloId);
   if (!pz) return '<div style="color:var(--gray2)">Elige un modelo primero.</div>';
   const partes = _RW.cx.partes || {};
-  const cliOpts = (sel) => CLIENTES.slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map((c) => `<option value="${c.id}" ${String(sel) === String(c.id) ? 'selected' : ''}>${c.tipo === 'juridica' ? '🏢' : '👤'} ${escapeHtml(c.nombre || '')}${c.rut ? ` — ${escapeHtml(c.rut)}` : ''}</option>`).join('');
   const roleBlock = (r) => {
     const base = r.key;
     const keys = [base];
@@ -102,7 +101,7 @@ function rwStepDatos() {
       keys.push(base + i);
       i += 1;
     }
-    const sels = keys.map((k, idx) => `<div style="display:flex;gap:8px;margin-bottom:5px"><select class="form-select" onchange="rwSetParte('${k}',this.value)"><option value="">— Elegir persona —</option>${cliOpts(partes[k])}</select><button class="btn-ghost" onclick="editCliente(null,true)" title="Nueva persona">＋</button>${idx > 0 ? `<button class="btn-ghost" style="color:var(--danger)" onclick="rwDelParte('${k}')" title="Quitar">✕</button>` : ''}</div>`).join('');
+    const sels = keys.map((k, idx) => { const sid=`rw-role-search-${base}-${idx}`.replace(/[^a-zA-Z0-9_-]/g,'_'); const hid=`rw-role-id-${base}-${idx}`.replace(/[^a-zA-Z0-9_-]/g,'_'); return `<div style="display:flex;gap:8px;margin-bottom:5px">${clientSearchField(sid,hid,partes[k],`clientSearchPick(this,'${hid}');rwSetParte('${k}',document.getElementById('${hid}').value)`,'Buscar persona…','flex:1;min-width:0')}<button class="btn-ghost" onclick="editCliente(null,true)" title="Nueva persona">＋</button>${idx > 0 ? `<button class="btn-ghost" style="color:var(--danger)" onclick="rwDelParte('${k}')" title="Quitar">✕</button>` : ''}</div>`; }).join('');
     const add = r.multi ? `<button class="btn-ghost" style="font-size:12px" onclick="rwAddRolePerson('${base}')">＋ Otra persona (van por igual)</button>` : '';
     return `<div class="form-row"><label class="form-label">${escapeHtml(r.label || base)}${r.multi ? ' <span style="opacity:.6">· varias</span>' : ''} <span style="opacity:.6">· {{${escapeHtml(base)}.individualizacion}}</span></label>${sels}${add}</div>`;
   };
@@ -167,9 +166,8 @@ function rwStepCausa() {
          <div class="rw-causa-list" id="rw-causa-list">${rwCausaListHTML()}</div>${compPrev}`
       : '<div style="color:var(--gray2);font-size:13px;margin-bottom:12px">No tienes causas guardadas. Usa "Nueva causa".</div>';
   } else {
-    const o = CLIENTES.slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map((c) => `<option value="${c.id}" ${String(_RW.cx.clienteId) === String(c.id) ? 'selected' : ''}>${c.tipo === 'juridica' ? '🏢' : '👤'} ${escapeHtml(c.nombre || '(sin nombre)')}${c.rut ? ` — ${escapeHtml(c.rut)}` : ''}</option>`).join('');
     f = `<div class="form-row"><label class="form-label">Carátula / nombre</label><input class="form-input" oninput="rwSetCx('caratula',this.value)" value="${escapeHtml(_RW.cx.caratula || '')}" placeholder='Ej: "Pérez con Soto"'></div>
-       <div class="form-row"><label class="form-label">Cliente *</label><div style="display:flex;gap:8px"><select class="form-select" onchange="rwSetCx('clienteId',this.value)"><option value="">— Elegir —</option>${o}</select><button class="btn-ghost" onclick="editCliente(null,true)">＋</button></div></div>
+       <div class="form-row"><label class="form-label">Cliente *</label><div style="display:flex;gap:8px">${clientSearchField('rw-causa-client-search','rw-causa-client-id',_RW.cx.clienteId,"clientSearchPick(this,'rw-causa-client-id');rwSetCx('clienteId',document.getElementById('rw-causa-client-id').value)",'Buscar cliente por nombre o RUT…','flex:1;min-width:0')}<button class="btn-ghost" onclick="editCliente(null,true)">＋</button></div></div>
        <div class="form-grid">
          <div class="form-row"><label class="form-label">Rol / RIT</label><input class="form-input" oninput="rwSetCx('rol',this.value)" value="${escapeHtml(_RW.cx.rol || '')}" placeholder="C-1234-2025"></div>
          <div class="form-row"><label class="form-label">Tribunal</label><input class="form-input" oninput="rwSetCx('tribunal',this.value)" value="${escapeHtml(_RW.cx.tribunal || '')}" placeholder="1º Juzgado Civil"></div>
@@ -222,9 +220,10 @@ function rwPartesRedaccion() {
   const rows = Object.keys(partes).map((k) => {
     const base = k.replace(/\d+$/, '');
     const lbl = (RW_ROLES.find((r) => r[0] === base) || [, k])[1];
+    const sid=`rw-part-search-${k}`.replace(/[^a-zA-Z0-9_-]/g,'_'); const hid=`rw-part-id-${k}`.replace(/[^a-zA-Z0-9_-]/g,'_');
     return `<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
       <span style="flex:0 0 auto;min-width:86px;font-size:12px;color:var(--gold3);font-weight:600">${escapeHtml(lbl)}<span style="opacity:.55;font-weight:400;font-size:10px"> {{${escapeHtml(k)}.nombre}}</span></span>
-      <select class="form-select" style="flex:1;min-width:130px;font-size:12px" onchange="rwSetParte('${k}',this.value)">${personaOptions(partes[k])}</select>
+      ${clientSearchField(sid,hid,partes[k],`clientSearchPick(this,'${hid}');rwSetParte('${k}',document.getElementById('${hid}').value)`,'Buscar persona…','flex:1;min-width:130px')}
       <button class="btn-ghost" style="padding:5px 8px" onclick="editCliente(null,true)" title="Nueva persona">＋</button>
       <button class="btn-ghost" style="color:var(--danger);padding:5px 8px" onclick="rwDelParte('${k}')">✕</button>
     </div>`;
@@ -246,8 +245,7 @@ function rwSetMandato(v) {
 function rwStepCompareciente() {
   const cx = _RW.cx;
   const perfil = STATE.perfilAbogado || {};
-  const o = CLIENTES.slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).map((c) => `<option value="${c.id}" ${String(cx.clienteId) === String(c.id) ? 'selected' : ''}>${c.tipo === 'juridica' ? '🏢' : '👤'} ${escapeHtml(c.nombre || '(sin nombre)')}${c.rut ? ` — ${escapeHtml(c.rut)}` : ''}</option>`).join('');
-  const sel = `<div class="form-row"><label class="form-label">Cliente de la causa</label><div style="display:flex;gap:8px"><select class="form-select" onchange="rwSetCx('clienteId',this.value)"><option value="">— Elegir —</option>${o}</select><button class="btn-ghost" onclick="editCliente(null,true)">＋ Nuevo</button></div></div>`;
+  const sel = `<div class="form-row"><label class="form-label">Cliente de la causa</label><div style="display:flex;gap:8px">${clientSearchField('rw-comp-client-search','rw-comp-client-id',cx.clienteId,"clientSearchPick(this,'rw-comp-client-id');rwSetCx('clienteId',document.getElementById('rw-comp-client-id').value)",'Buscar cliente por nombre o RUT…','flex:1;min-width:0')}<button class="btn-ghost" onclick="editCliente(null,true)">＋ Nuevo</button></div></div>`;
   const poderBox = cx.tienePoder ? `<div class="form-row"><label class="form-label">Rol procesal del representado</label><select class="form-select" onchange="rwSetCx('rolProcesal',this.value)">${rolOptions(cx.rolProcesal)}</select></div>` : '';
   const perfilHint = !perfil.nombre ? '<div class="redactar-hint">⚠️ Completa tu <a href="#" onclick="openPartesPanel();return false">perfil de abogado</a> para el patrocinio/poder y notificaciones.</div>' : '';
   return `${sel}

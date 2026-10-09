@@ -305,7 +305,10 @@ function switchView(name, btn) {
   if (name === 'inicio') renderInicio();
   if (name === 'estudiodash') renderEstudioDash();
   if (name === 'oficinadash') renderOficinaDash();
-  if (name === 'admin') renderAdminList();
+  if (name === 'admin') {
+    renderAdminList();
+    if (typeof renderAccessRequests === 'function') renderAccessRequests();
+  }
   if (name === 'flashcards') renderFlashcards();
   if (name === 'progreso') renderProgreso();
   if (name === 'apuntes') renderApuntes();

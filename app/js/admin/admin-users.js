@@ -66,12 +66,12 @@ async function renderUsersAdmin() {
   }).join('');
 }
 
-function openCreateUser() {
+function openCreateUser(prefillEmail = '', prefillName = '') {
   document.getElementById('admin-user-body').innerHTML = `
     <div class="modal-title">➕ Crear usuario</div>
-    <div class="form-row"><label class="form-label">Nombre</label><input class="form-input" id="cu-nombre" placeholder="Nombre y apellido"></div>
+    <div class="form-row"><label class="form-label">Nombre</label><input class="form-input" id="cu-nombre" value="${escapeHtml(prefillName)}" placeholder="Nombre y apellido"></div>
     <div class="form-row"><label class="form-label">RUT</label><input class="form-input" id="cu-rut" placeholder="12.345.678-9"></div>
-    <div class="form-row"><label class="form-label">Correo</label><input class="form-input" id="cu-email" type="email" placeholder="usuario@correo.cl"></div>
+    <div class="form-row"><label class="form-label">Correo</label><input class="form-input" id="cu-email" type="email" value="${escapeHtml(prefillEmail)}" placeholder="usuario@correo.cl"></div>
     <div class="form-row"><label class="form-label">Contraseña inicial</label><input class="form-input" id="cu-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
     <div class="form-row"><label class="form-label">Rol</label>
       <select class="form-select" id="cu-role"><option value="user">Usuario</option><option value="admin">Administrador</option></select></div>

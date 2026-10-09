@@ -1079,7 +1079,13 @@ function saveModeloEdit(){
 }
 
 // ── Perfil del abogado ──
-function openPartesPanel(){ renderPartes(); openModal('modal-partes'); }
+function openPartesPanel(){
+  if (STATE.viewingUid) {
+    toast('Vuelve a Mi biblioteca para abrir o modificar tu perfil y membrete.', 'error');
+    return;
+  }
+  renderPartes(); openModal('modal-partes');
+}
 function cuentaAccesoHTML(){
   const email = STATE.user || '';
   return `<div class="partes-sec" style="margin-top:14px">

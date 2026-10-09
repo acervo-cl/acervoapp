@@ -29,6 +29,12 @@ function kindFromExt(ext) {
 
 const KIND_TYPE = { pdf: 'PDF', docx: 'Word', doc: 'Word', md: 'Apunte', txt: 'Apunte', image: 'Imagen' };
 
+async function extractDocxRawText(file) {
+  if (!window.mammoth) await waitFor(() => window.mammoth);
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return (result.value || '').trim();
+}
+
 async function extractPdfToContent() {
   let txt = pickedPdfText || '';
   if (!txt && STATE.editingDocId) {
@@ -90,9 +96,7 @@ async function onFilePick(e) {
       toast('Texto cargado', 'success');
     } else if (pickedKind === 'docx') {
       toast('Procesando Word…');
-      const buf = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer: buf });
-      document.getElementById('fd-content').value = result.value || '';
+      document.getElementById('fd-content').value = await extractDocxRawText(file);
       richLoad();
       toast('Word listo para leer', 'success');
     } else if (pickedKind === 'pdf') {

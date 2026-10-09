@@ -1718,6 +1718,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 #print-area{display:none}
 </style>
 <link rel="stylesheet" href="css/access-request.css">
+<link rel="stylesheet" href="css/admin-access-requests.css">
 </head>
 <body>
 
@@ -1908,8 +1909,8 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 
     <div id="view-documentos" class="view-panel">
       <div class="content-header">
-        <div><div class="content-title">📄 Documentos</div><div class="content-sub">Tus PDF. Se abren como un libro, con notas e índice.</div></div>
-        <button class="btn-gold" onclick="uploadDocumento()">＋ Subir PDF</button>
+        <div><div class="content-title">📄 Documentos</div><div class="content-sub">Tus PDF y documentos Word. Se abren como un libro, con notas e índice.</div></div>
+        <button class="btn-gold" onclick="uploadDocumento()">＋ Subir documento</button>
       </div>
       <div class="docs-shelf-wrap"><div class="docs-shelf" id="docs-shelf"></div></div>
     </div>
@@ -2002,6 +2003,23 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
         </span>
       </div>
       <div class="list-table" id="admin-users-table" style="margin:12px 0 26px"></div>
+
+      <div class="content-header" style="margin-bottom:6px">
+        <div><div class="content-title" style="font-size:15px">📋 Solicitudes de acceso</div>
+        <div class="content-sub" style="font-size:12px">Personas que reservaron acceso desde el login.</div></div>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-gold" style="font-size:12px;padding:6px 12px" onclick="downloadAccessRequestsCsv()">⬇ Descargar CSV</button>
+          <button class="btn-ghost" style="font-size:12px;padding:6px 12px" onclick="renderAccessRequests()">↻ Actualizar</button>
+        </span>
+      </div>
+      <div id="access-requests-summary" class="access-admin-summary"></div>
+      <div class="access-admin-toolbar">
+        <input class="form-input" id="access-requests-search" placeholder="Buscar por nombre, correo o respuesta…" oninput="searchAccessRequests(this.value)">
+        <select class="form-select" id="access-requests-filter" onchange="filterAccessRequests(this.value)">
+          <option value="all">Todos los estados</option><option value="nuevo">Nuevas</option><option value="contactado">Contactadas</option><option value="invitado">Invitadas</option><option value="descartado">Descartadas</option>
+        </select>
+      </div>
+      <div class="list-table" id="admin-access-requests" style="margin:12px 0 26px"></div>
 
       <div class="content-header" style="margin-bottom:6px">
         <div><div class="content-title" style="font-size:15px">💾 Espacio usado</div>
@@ -2356,7 +2374,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   <div class="form-row slim-only"><label class="form-label">📎 Documentos <span id="fe-files-hint" style="color:var(--gray2);font-weight:400">(se leen y te ofrezco las personas que encuentre)</span></label>
     <input type="file" class="form-input" id="fe-files" multiple accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif"></div>
   <div class="form-grid">
-    <div class="form-row"><label class="form-label" id="fe-cli-lbl">Cliente *</label><div style="display:flex;gap:8px"><select class="form-select" id="fe-clienteId" onchange="renderCoClientes()"></select><button class="btn-ghost" type="button" onclick="editCliente(null,'exp')">＋</button></div>
+    <div class="form-row"><label class="form-label" id="fe-cli-lbl">Cliente *</label><div style="display:flex;gap:8px"><div id="fe-cliente-picker" style="flex:1;min-width:0"></div><button class="btn-ghost" type="button" onclick="editCliente(null,'exp')">＋</button></div>
       <div id="fe-coclientes"></div>
       <button class="btn-ghost" type="button" style="font-size:12px;margin-top:5px" onclick="expAddCoCli()">＋ Otro cliente (varios por igual)</button></div>
     <div class="form-row solo-causa"><label class="form-label">Contraparte <span style="color:var(--gray2);font-weight:400">(texto rápido)</span></label><input class="form-input" id="fe-contraparte" placeholder="La otra parte"></div>
@@ -2626,6 +2644,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <script src="js/admin/drafting-admin-config.js"></script>
 <script src="js/admin/admin-permissions.js"></script>
 <script src="js/admin/admin-users.js"></script>
+<script src="js/admin/access-requests.js"></script>
 <script src="js/core/auth.js"></script>
 <script type="module" src="js/core/access-request.js"></script>
 <script src="js/core/realtime.js"></script>
@@ -2665,7 +2684,7 @@ const _SEED_ANNOTATIONS = JSON.parse(JSON.stringify(ANNOTATIONS));
 // Expedientes (causas) y sus documentos (PDF/JPG/escrito). EXDOCS son paralelos a DOCUMENTS para abrirse en el lector.
 let EXPEDIENTES = [];
 let EXDOCS = [];
-// Documentos: biblioteca de PDFs (como libros, pero PDF). Paralelos a DOCUMENTS.
+// Documentos: biblioteca de archivos PDF y Word (como libros). Paralelos a DOCUMENTS.
 let DOCUMENTOS = [];
 // REDACCIÓN (motor portado de Lawfy): modelos de escritos + registro de partes.
 let MODELOS = [];     // piezas (peticiones/tipos de contrato) {id,tipoId,nombre,suma,cuerpo,portanto,variables,esOtrosi,...}

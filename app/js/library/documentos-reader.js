@@ -1,9 +1,9 @@
-// DOCUMENTOS (biblioteca de PDFs) — Fase A
+// DOCUMENTOS (biblioteca de PDF y Word) — Fase A
 // ════════════════════════════════════════
 function renderDocumentos(){
   const host=document.getElementById('docs-shelf'); if(!host) return;
   const list=DOCUMENTOS.slice().sort((a,b)=>(b.created||0)-(a.created||0));
-  if(!list.length){ host.innerHTML='<div class="favs-empty" style="width:100%"><div>📄</div><p>Aún no tienes documentos.<br>Sube un PDF con "＋ Subir PDF".</p></div>'; return; }
+  if(!list.length){ host.innerHTML='<div class="favs-empty" style="width:100%"><div>📄</div><p>Aún no tienes documentos.<br>Sube un PDF o Word con "＋ Subir documento".</p></div>'; return; }
   host.innerHTML='';
   list.forEach(x=>{
     const card=document.createElement('div'); card.className='docsheet';
@@ -14,12 +14,19 @@ function renderDocumentos(){
   });
 }
 function uploadDocumento(){
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='.pdf'; inp.multiple=true;
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.pdf,.docx'; inp.multiple=true;
   inp.onchange=async ev=>{
     for(const f of [...ev.target.files]){
       const id='do'+Date.now()+Math.floor(Math.random()*999);
-      try{ await putFileBlob(id,f); }catch(err){ toast('No se pudo guardar el PDF','error'); continue; }
-      DOCUMENTOS.push({id, kind:'documento', title:f.name.replace(/\.[^.]+$/,''), type:'PDF', hasFile:true, fileName:f.name, fileKind:'pdf', created:Date.now()});
+      const ext=(f.name.split('.').pop()||'').toLowerCase();
+      const fileKind=ext==='docx'?'docx':'pdf';
+      let content='';
+      if(fileKind==='docx'){
+        try{ content=await extractDocxRawText(f); }
+        catch(err){ toast(`No se pudo extraer el texto de "${f.name}"`,'error'); }
+      }
+      try{ await putFileBlob(id,f); }catch(err){ toast('No se pudo guardar el documento','error'); continue; }
+      DOCUMENTOS.push({id, kind:'documento', title:f.name.replace(/\.[^.]+$/,''), type:fileKind==='docx'?'Word':'PDF', content, hasFile:true, fileName:f.name, fileKind, created:Date.now()});
     }
     saveState(); buildSearchIndex(); renderDocumentos(); toast('Documento(s) subido(s)','success');
   };
@@ -897,7 +904,7 @@ async function renderPdfPage(pageDiv){
     pageDiv.appendChild(canvas);
     await page.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise;
     const vpFit=page.getViewport({scale:fit});
-    const tl=document.createElement('div'); tl.className='pdf-text-layer'; tl.style.width=fitW+'px'; tl.style.height=fitH+'px'; tl.style.setProperty('--scale-factor', fit);
+    const tl=document.createElement('div'); tl.className='pdf-text-layer'; tl.style.width=fitW+'px'; tl.style.height=fitH+'px'; tl.style.setProperty('--scale-factor', fit); tl.style.transform=`scale(${_pdfZoom})`; tl.style.transformOrigin='0 0';
     pageDiv.appendChild(tl);
     const tc=await page.getTextContent();
     await pdfjsLib.renderTextLayer({ textContentSource:tc, container:tl, viewport:vpFit, textDivs:[] }).promise;
@@ -908,14 +915,24 @@ async function renderPdfPage(pageDiv){
 function setPdfZoom(z, cx, cy){
   const rt=document.getElementById('reader-text'), zoomEl=document.getElementById('pdf-zoom'); if(!rt||!zoomEl) return;
   const old=_pdfZoom||1; z=Math.max(1, Math.min(4, z));
-  const rect=rt.getBoundingClientRect();
-  const px=(cx!=null?cx:rect.left+rect.width/2), py=(cy!=null?cy:rect.top+rect.height/2);   // punto focal en pantalla
-  const contentX=px-rect.left+rt.scrollLeft, contentY=py-rect.top+rt.scrollTop;             // ese punto en el contenido
-  const ratio=z/old; _pdfZoom=z;
-  zoomEl.querySelectorAll('.pdf-page').forEach(p=>{ const fw=+p.dataset.fitw||300, fh=+p.dataset.fith||(fw*1.3); p.style.width=Math.round(fw*z)+'px'; p.style.height=Math.round(fh*z)+'px'; });
-  rt.scrollLeft=contentX*ratio-(px-rect.left);   // deja el punto focal donde estaba
-  rt.scrollTop =contentY*ratio-(py-rect.top);
-  updatePdfPageNum();
+  const areaRect=rt.getBoundingClientRect(), zoomRect=zoomEl.getBoundingClientRect();
+  const px=(cx!=null?cx:zoomRect.left+zoomRect.width/2), py=(cy!=null?cy:areaRect.top+Math.min(areaRect.height, zoomEl.clientHeight)/2);
+  const pages=[...zoomEl.querySelectorAll('.pdf-page')];
+  const anchor=pages.find(p=>{ const r=p.getBoundingClientRect(); return px>=r.left&&px<=r.right&&py>=r.top&&py<=r.bottom; }) || pages[0];
+  const anchorRect=anchor&&anchor.getBoundingClientRect();
+  const anchorX=anchorRect ? (px-anchorRect.left)/old : null;
+  const anchorY=anchorRect ? (py-anchorRect.top)/old : null;
+  _pdfZoom=z;
+  pages.forEach(p=>{ const fw=+p.dataset.fitw||300, fh=+p.dataset.fith||(fw*1.3); p.style.width=Math.round(fw*z)+'px'; p.style.height=Math.round(fh*z)+'px'; });
+  zoomEl.querySelectorAll('.pdf-text-layer').forEach(layer=>{ layer.style.transform=`scale(${z})`; layer.style.transformOrigin='0 0'; });
+  requestAnimationFrame(()=>{
+    if(anchor&&anchorRect&&anchor.isConnected){
+      const next=anchor.getBoundingClientRect();
+      if(anchorX!=null) zoomEl.scrollLeft=Math.max(0,Math.min(zoomEl.scrollWidth-zoomEl.clientWidth,zoomEl.scrollLeft+next.left+anchorX*z-px));
+      if(anchorY!=null) rt.scrollTop=Math.max(0,Math.min(rt.scrollHeight-rt.clientHeight,rt.scrollTop+next.top+anchorY*z-py));
+    }
+    updatePdfPageNum();
+  });
 }
 // Pellizco para acercar (hacia el centro del pellizco) + doble toque
 function attachPdfZoom(body){
@@ -1981,7 +1998,7 @@ function buildSearchIndex() {
     STATE.searchIndex.push({type:'doc',id:a.id,title:a.title||'Apunte',body:(a.title||'')+' '+stripHtml(a.content),icon:'📝',subject:null,doc:a});
   });
   DOCUMENTOS.forEach(a => {
-    STATE.searchIndex.push({type:'doc',id:a.id,title:a.title||'Documento',body:(a.title||'')+' '+(a.fileName||''),icon:'📄',subject:null,doc:a});
+    STATE.searchIndex.push({type:'doc',id:a.id,title:a.title||'Documento',body:(a.title||'')+' '+(a.fileName||'')+' '+stripHtml(a.content||''),icon:'📄',subject:null,doc:a});
   });
   ANNOTATIONS.forEach(a => {
     const d = findDoc(a.docId);

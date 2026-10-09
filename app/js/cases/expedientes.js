@@ -398,11 +398,22 @@ function expCardClick(ev, id, el){ if(ev.ctrlKey||ev.metaKey){ ev.preventDefault
 function closeExpediente(){ const ov=document.getElementById('exp-overlay');
   if(_readerFloat && ov && ov.classList.contains('open')) goToApp();   // solo si la causa estaba CENTRADA en el overlay (doc flotando sobre ella) → no cerrar docs cuando la causa está flotando o al re-renderizar la lista
   const prev=_curExp; if(ov){ ov.classList.remove('open'); ov.innerHTML=''; } _curExp=null; if(prev) syncSharedCausaIfMine(prev); }
+function clientSearchLabel(c){ return c ? `${c.nombre||'(sin nombre)'}${c.rut?` — ${c.rut}`:''}` : ''; }
+function clientSearchField(inputId, hiddenId, selectedId, onChange, placeholder='Buscar por nombre o RUT…', style='', excludeId=''){
+  const selected=findCliente(selectedId);
+  const options=CLIENTES.filter(c=>!excludeId||String(c.id)===String(selectedId)||String(c.id)!==String(excludeId)).slice().sort((a,b)=>clientSearchLabel(a).localeCompare(clientSearchLabel(b))).map(c=>`<option value="${escapeHtml(clientSearchLabel(c))}"></option>`).join('');
+  return `<div style="${style}"><input class="form-input" id="${inputId}" list="${inputId}-list" value="${escapeHtml(clientSearchLabel(selected))}" placeholder="${placeholder}" autocomplete="off" oninput="clientSearchInput(this,'${hiddenId}')" onchange="${onChange}"><datalist id="${inputId}-list">${options}</datalist><input type="hidden" id="${hiddenId}" value="${escapeHtml(selectedId||'')}"></div>`;
+}
+function clientSearchInput(input, hiddenId){ if(!input.value.trim()){ const hidden=document.getElementById(hiddenId); if(hidden) hidden.value=''; } }
+function clientSearchPick(input, hiddenId){
+  const query=(input.value||'').trim().toLowerCase();
+  const client=CLIENTES.find(c=>clientSearchLabel(c).toLowerCase()===query);
+  const hidden=document.getElementById(hiddenId); if(hidden) hidden.value=client?client.id:'';
+  return client?client.id:'';
+}
 function fillExpClienteSelect(selId){
-  const sel=document.getElementById('fe-clienteId'); if(!sel) return;
-  const opts=CLIENTES.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''))
-    .map(c=>`<option value="${c.id}" ${String(selId)===String(c.id)?'selected':''}>${c.tipo==='juridica'?'🏢':'👤'} ${escapeHtml(c.nombre||'(sin nombre)')}${c.rut?' — '+escapeHtml(c.rut):''}</option>`).join('');
-  sel.innerHTML=`<option value="">— Elegir cliente —</option>${opts}`;
+  const host=document.getElementById('fe-cliente-picker'); if(!host) return;
+  host.innerHTML=clientSearchField('fe-cliente-search','fe-clienteId',selId,"clientSearchPick(this,'fe-clienteId');renderCoClientes()",'Buscar cliente por nombre o RUT…');
 }
 function refreshExpClienteSelect(selId){ fillExpClienteSelect(selId); }
 // Varios clientes "por igual": el select principal + esta lista de co-clientes
@@ -411,8 +422,7 @@ function renderCoClientes(){
   const host=document.getElementById('fe-coclientes'); if(!host) return;
   const principal=(document.getElementById('fe-clienteId')||{}).value||'';
   host.innerHTML=_expCoCli.map((cid,i)=>`<div style="display:flex;gap:6px;margin-top:5px;align-items:center">
-    <select class="form-select" style="font-size:12px" onchange="_expCoCli[${i}]=this.value">
-      <option value="">— otro cliente —</option>${CLIENTES.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).filter(c=>c.id!==principal).map(c=>`<option value="${c.id}" ${String(cid)===String(c.id)?'selected':''}>${c.tipo==='juridica'?'🏢':(c.tipo==='nino'?'🧒':'👤')} ${escapeHtml(c.nombre||'(sin nombre)')}${c.rut?' — '+escapeHtml(c.rut):''}</option>`).join('')}</select>
+    ${clientSearchField(`fe-co-client-search-${i}`,`fe-co-client-id-${i}`,cid,`clientSearchPick(this,'fe-co-client-id-${i}');_expCoCli[${i}]=document.getElementById('fe-co-client-id-${i}').value`,'Buscar otro cliente…','flex:1;min-width:0',principal)}
     <button class="btn-ghost" type="button" style="color:var(--danger);padding:5px 8px" onclick="expDelCoCli(${i})">✕</button></div>`).join('');
 }
 function expAddCoCli(){ _expCoCli.push(''); renderCoClientes(); }
@@ -485,7 +495,6 @@ function _enriquecerConCert(det, textos){
   return det;
 }
 let _expPartes=[];
-function personaOptions(sel){ return '<option value="">— elige persona —</option>'+CLIENTES.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).map(c=>`<option value="${c.id}" ${String(sel)===String(c.id)?'selected':''}>${c.tipo==='juridica'?'🏢':(c.tipo==='nino'?'🧒':'👤')} ${escapeHtml(c.nombre||'(sin nombre)')}</option>`).join(''); }
 function renderExpPartes(){
   const host=document.getElementById('fe-partes'); if(!host) return;
   const area=(document.getElementById('fe-tipo')||{}).value||'';
@@ -496,7 +505,7 @@ function renderExpPartes(){
     _expPartes.forEach((q,j)=>{ if(j!==i && q.personaId){ const c=findCliente(q.personaId); if(c) ops.push([q.personaId, c.nombre||'']); } }); return ops; };
   host.innerHTML=_expPartes.length?_expPartes.map((p,i)=>`<div style="border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-bottom:6px">
     <div style="display:flex;gap:6px;align-items:center">
-      <select class="form-select" style="flex:2;font-size:12px" onchange="expSetParte(${i},'personaId',this.value);renderExpPartes()">${personaOptions(p.personaId)}</select>
+      ${clientSearchField(`fe-parte-search-${i}`,`fe-parte-id-${i}`,p.personaId,`clientSearchPick(this,'fe-parte-id-${i}');expSetParte(${i},'personaId',document.getElementById('fe-parte-id-${i}').value);renderExpPartes()`,'Buscar persona…','flex:2;min-width:0')}
       <select class="form-select" style="flex:1;font-size:12px" onchange="expSetParte(${i},'rol',this.value)">${EXP_ROLES.map(r=>`<option value="${r}" ${p.rol===r?'selected':''}>${r}</option>`).join('')}</select>
       <button class="btn-ghost" type="button" style="color:var(--danger);padding:5px 8px" onclick="expRemoveParte(${i})">✕</button>
     </div>

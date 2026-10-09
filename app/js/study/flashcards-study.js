@@ -679,8 +679,8 @@ function quickAddBook(defaultSubject){
     <input class="form-input" id="qb-title" placeholder="Ej: Manual de Derecho Penal" style="margin-bottom:10px">
     <label class="form-label">Área</label>
     <select class="form-select" id="qb-subject" style="margin-bottom:10px">${subs.map(s=>`<option value="${s.id}" ${s.id===defaultSubject?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select>
-    <label class="form-label">Archivo(s) (PDF o imagen) *</label>
-    <input id="qb-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="quickBookFile(event)" style="font-size:13px;color:var(--gray);padding:8px;border:1px dashed rgba(201,168,76,.35);border-radius:8px;width:100%;background:rgba(255,255,255,.03);cursor:pointer">
+    <label class="form-label">Archivo(s) (PDF, Word o imagen) *</label>
+    <input id="qb-file" type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp" multiple onchange="quickBookFile(event)" style="font-size:13px;color:var(--gray);padding:8px;border:1px dashed rgba(201,168,76,.35);border-radius:8px;width:100%;background:rgba(255,255,255,.03);cursor:pointer">
     <div id="qb-file-name" style="font-size:12px;color:var(--gray2);margin-top:6px"></div>
     <div style="font-size:11px;color:var(--gray2);margin-top:10px">Puedes elegir <b>varios</b>: cada uno se crea como un libro con el <b>nombre de su archivo</b>. Autor, resumen… se editan luego.</div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
@@ -709,13 +709,14 @@ async function quickSaveBook(){
   const btn=document.getElementById('qb-go'); if(btn){ btn.disabled=true; btn.textContent='Creando…'; }
   let n=0;
   for(const f of files){
-    const ext=(f.name.split('.').pop()||'').toLowerCase(); const kind = ext==='pdf'?'pdf':'image';
-    let blob=f, pages=0, pdfText='';
+    const ext=(f.name.split('.').pop()||'').toLowerCase(); const kind = ext==='pdf'?'pdf':ext==='docx'?'docx':'image';
+    let blob=f, pages=0, pdfText='', content='';
     if(kind==='image'){ try{ blob=await compressIfImage(f)||f; }catch(_){} }
+    else if(kind==='docx'){ try{ content=await extractDocxRawText(f); }catch(_){ toast(`No se pudo extraer el texto de "${f.name}"`,'error'); } }
     else if(window.pdfjsLib){ try{ const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise; pages=pdf.numPages; let txt=''; for(let i=1;i<=Math.min(pdf.numPages,30);i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); txt+=tc.items.map(it=>it.str).join(' ')+'\n'; } pdfText=txt.trim(); }catch(_){} }
     const id='d'+Date.now()+Math.floor(Math.random()*9999);
     const title = single ? titleField : f.name.replace(/\.[^.]+$/,'');
-    const data={ id, title, subject, pages, type:kind==='pdf'?'PDF':'Imagen', status:'pending', summary:'', author:'', content:'', pdfText, tags:[], progress:0, lastAccess:null, annCount:0, fileName:f.name, fileKind:kind, hasFile:true, related:[], owner:STATE.isAdmin?'admin':STATE.user, unlocked:false };
+    const data={ id, title, subject, pages, type:kind==='pdf'?'PDF':kind==='docx'?'Word':'Imagen', status:'pending', summary:'', author:'', content, pdfText, tags:[], progress:0, lastAccess:null, annCount:0, fileName:f.name, fileKind:kind, hasFile:true, related:[], owner:STATE.isAdmin?'admin':STATE.user, unlocked:false };
     try{ await putFileBlob(id, blob); DOCUMENTS.push(data); STATE.docOrder.push(id); n++; }catch(err){}
   }
   saveState(); try{buildSearchIndex();}catch(_){}
