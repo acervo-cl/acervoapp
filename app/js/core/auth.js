@@ -133,9 +133,11 @@ async function enterApp() {
   applyAccessLevel();
 
   const initials = (user.email || 'U').slice(0, 2).toUpperCase();
-  document.getElementById('avatar-btn').childNodes[0].textContent = initials;
+  const avatarButton = document.getElementById('avatar-btn');
+  if (avatarButton && avatarButton.firstChild) avatarButton.firstChild.textContent = initials;
 
-  document.getElementById('admin-badge-wrap').innerHTML = STATE.isAdmin ? '<div class="admin-badge">ADMIN</div>' : '';
+  const adminBadge = document.getElementById('admin-badge-wrap');
+  if (adminBadge) adminBadge.innerHTML = STATE.isAdmin ? '<div class="admin-badge">ADMIN</div>' : '';
   const adminMenuItem = document.getElementById('admin-menu-item');
   if (adminMenuItem) adminMenuItem.style.display = STATE.isAdmin ? 'flex' : 'none';
 
@@ -147,7 +149,8 @@ async function enterApp() {
   renderTabs();
   setTimeout(renderUnified, 80);
   setTimeout(backfillFilesToCloud, 2500);
-  document.getElementById('pomo-wrap').style.display = 'block';
+  const pomoWrap = document.getElementById('pomo-wrap');
+  if (pomoWrap) pomoWrap.style.display = 'block';
   pomoInit();
   initMinimap();
   initEditor();
