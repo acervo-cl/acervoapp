@@ -9,6 +9,10 @@ let _accessRequestRows = [];
 let _accessRequestFilter = 'all';
 let _accessRequestQuery = '';
 
+function escapeAccessRequest(value) {
+  return escapeHtml(String(value == null ? '' : value));
+}
+
 function accessRequestStatus(row) {
   return row && row.estado ? row.estado : 'nuevo';
 }
@@ -65,20 +69,20 @@ function renderAccessRequestRows() {
     return `<div class="access-admin-row">
       <div class="access-admin-row-top">
         <div class="access-admin-main">
-          <div class="access-admin-name">${escapeHtml(row.nombre || '—')} <span class="access-admin-pill">${escapeHtml(row.rama || 'sin rama')}</span></div>
-          <div class="access-admin-meta">${escapeHtml(row.correo || '')}${row.fono ? ` · ${escapeHtml(row.fono)}` : ''}${row.institucion ? ` · ${escapeHtml(row.institucion)}` : ''}</div>
+          <div class="access-admin-name">${escapeAccessRequest(row.nombre || '—')} <span class="access-admin-pill">${escapeAccessRequest(row.rama || 'sin rama')}</span></div>
+          <div class="access-admin-meta">${escapeAccessRequest(row.correo || '')}${row.fono ? ` · ${escapeAccessRequest(row.fono)}` : ''}${row.institucion ? ` · ${escapeAccessRequest(row.institucion)}` : ''}</div>
         </div>
         <div class="access-admin-date">${accessRequestDate(row.created_at)}</div>
-        <select class="access-admin-status" onchange="setAccessRequestStatus(${Number(row.id)},this.value)">
+        <select class="access-admin-status" onchange="setAccessRequestStatus('${escapeAccessRequest(row.id)}',this.value)">
           ${ACCESS_REQUEST_STATUSES.map(([value, label]) => `<option value="${value}" ${status === value ? 'selected' : ''}>${label}</option>`).join('')}
         </select>
-        <button class="btn-ghost" style="font-size:12px;padding:6px 12px" onclick="createUserFromAccessRequest(${Number(row.id)})">＋ Crear cuenta</button>
-        <button class="btn-ghost" style="font-size:12px;padding:6px 10px;color:var(--danger)" onclick="deleteAccessRequest(${Number(row.id)})">🗑</button>
+        <button class="btn-ghost" style="font-size:12px;padding:6px 12px" onclick="createUserFromAccessRequest('${escapeAccessRequest(row.id)}')">＋ Crear cuenta</button>
+        <button class="btn-ghost" style="font-size:12px;padding:6px 10px;color:var(--danger)" onclick="deleteAccessRequest('${escapeAccessRequest(row.id)}')">🗑</button>
       </div>
       <div class="access-admin-answers">
-        <b>Dónde vive:</b> ${escapeHtml(where || '—')} · <b>Buscar:</b> ${escapeHtml(answers.q_buscar || '—')} · <b>Repetir:</b> ${escapeHtml(answers.q_repetir || '—')}<br>
-        <b>Teléfono:</b> ${escapeHtml(answers.q_celular || '—')} · <b>Libertad:</b> ${escapeHtml(answers.q_libertad ?? '—')}/10 · <b>Perfil:</b> ${escapeHtml(row.perfil || '—')}${row.referido ? ` · <b>Le habló:</b> ${escapeHtml(row.referido)}` : ''}
-        ${row.comentario ? `<br><b>Comentario:</b> «${escapeHtml(row.comentario)}»` : ''}
+        <b>Dónde vive:</b> ${escapeAccessRequest(where || '—')} · <b>Buscar:</b> ${escapeAccessRequest(answers.q_buscar || '—')} · <b>Repetir:</b> ${escapeAccessRequest(answers.q_repetir || '—')}<br>
+        <b>Teléfono:</b> ${escapeAccessRequest(answers.q_celular || '—')} · <b>Libertad:</b> ${escapeAccessRequest(answers.q_libertad ?? '—')}/10 · <b>Perfil:</b> ${escapeAccessRequest(row.perfil || '—')}${row.referido ? ` · <b>Le habló:</b> ${escapeAccessRequest(row.referido)}` : ''}
+        ${row.comentario ? `<br><b>Comentario:</b> «${escapeAccessRequest(row.comentario)}»` : ''}
       </div>
     </div>`;
   }).join('');
@@ -109,12 +113,17 @@ async function renderAccessRequests() {
   host.innerHTML = '<div class="access-admin-empty">Cargando solicitudes…</div>';
   const { data, error } = await client.from('access_requests').select('*').order('created_at', { ascending: false });
   if (error) {
-    host.innerHTML = `<div class="access-admin-empty" style="color:#f88">No se pudieron cargar las solicitudes: ${escapeHtml(error.message)}</div>`;
+    host.innerHTML = `<div class="access-admin-empty" style="color:#f88">No se pudieron cargar las solicitudes: ${escapeAccessRequest(error.message)}</div>`;
     return;
   }
-  _accessRequestRows = data || [];
-  renderAccessRequestSummary();
-  renderAccessRequestRows();
+  try {
+    _accessRequestRows = data || [];
+    renderAccessRequestSummary();
+    renderAccessRequestRows();
+  } catch (error) {
+    host.innerHTML = `<div class="access-admin-empty" style="color:#f88">No se pudieron mostrar las solicitudes: ${escapeAccessRequest(error.message)}</div>`;
+    console.error('access requests render:', error);
+  }
 }
 
 function createUserFromAccessRequest(id) {
