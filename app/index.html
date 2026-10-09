@@ -2059,10 +2059,6 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   <div class="avatar-item" onclick="openStorageInfo()">☁️ Almacenamiento</div>
   <div class="avatar-item" onclick="openPapelera()">🗑 Papelera</div>
   <div class="avatar-item" id="admin-menu-item" style="display:none" onclick="closeAvatarMenu();switchView('admin',null)">⚙️ Administrar</div>
-  <div class="avatar-sep admin-ctrl"></div>
-  <div class="avatar-item admin-ctrl" onclick="exportBackup()">⬇ Exportar backup</div>
-  <div class="avatar-item admin-ctrl" onclick="importBackup()">⬆ Importar backup</div>
-  <div class="avatar-item" id="reset-menu-item" style="display:none" onclick="resetData()">⟳ Restaurar datos</div>
   <div class="avatar-item" onclick="doLogout()">↩ Cerrar sesión</div>
 </div>
 
@@ -2613,7 +2609,6 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 
 <!-- TOASTS -->
 <div class="toast-container" id="toast-container"></div>
-<input type="file" id="import-file" accept=".json" style="display:none" onchange="onImportFile(event)">
 
 <!-- Librerías para visualizar documentos -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -2638,7 +2633,6 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <script src="js/admin/template-admin.js"></script>
 <script src="js/admin/structure-editor.js"></script>
 <script src="js/cases/collaboration-config.js"></script>
-<script src="js/cases/backup-transfer.js"></script>
 <script src="js/admin/admin-library-viewer.js"></script>
 <script src="js/core/seed-data.js"></script>
 <script src="js/admin/model-import.js"></script>

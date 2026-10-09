@@ -136,8 +136,8 @@ async function enterApp() {
   document.getElementById('avatar-btn').childNodes[0].textContent = initials;
 
   document.getElementById('admin-badge-wrap').innerHTML = STATE.isAdmin ? '<div class="admin-badge">ADMIN</div>' : '';
-  document.getElementById('admin-menu-item').style.display = STATE.isAdmin ? 'flex' : 'none';
-  document.getElementById('reset-menu-item').style.display = STATE.isAdmin ? 'flex' : 'none';
+  const adminMenuItem = document.getElementById('admin-menu-item');
+  if (adminMenuItem) adminMenuItem.style.display = STATE.isAdmin ? 'flex' : 'none';
 
   applyPermsUI();
   buildSearchIndex();
