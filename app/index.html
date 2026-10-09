@@ -466,6 +466,12 @@ body.is-admin .doc-card:hover .card-admin-btns{display:flex}
 @media(max-width:760px){ .modal-window-controls{top:8px;right:8px} .modal-window-btn{width:30px;height:29px} .modal.win-mode{resize:none;transform:none!important;left:0!important;top:auto!important} }
 .modal.open{display:block}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:20px;color:var(--white)}
+.shelf-shared-index{margin:18px 0 10px;padding:14px 16px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:12px}
+.shelf-shared-index-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.shelf-shared-index-title{font-weight:700;color:var(--white)}
+.shelf-shared-index-meta{font-size:11px;color:var(--gray2);margin-top:4px}
+.shelf-shared-index-books{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.shelf-shared-index-book{padding:5px 9px;border-radius:7px;background:rgba(255,255,255,.05);color:var(--gray);font-size:11px}
 .form-row{margin-bottom:14px}
 .form-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray2);margin-bottom:6px;display:block}
 .form-input,.form-select,.form-textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.15);border-radius:9px;padding:11px 14px;color:var(--white);font-size:14px;outline:none;transition:border-color .2s;font-family:inherit}
@@ -1849,6 +1855,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
           </select>
           <button class="btn-ghost" onclick="toggleLibSel()" title="Seleccionar varios">☑ Seleccionar</button>
           <button class="btn-ghost" onclick="selectAllLib()" title="Seleccionar todos los libros">☑ Seleccionar todo</button>
+          <button class="btn-ghost" onclick="openShelfIndexShare()" title="Compartir el índice de tu estantería">🤝 Compartir índice</button>
           <button class="btn-ghost" onclick="emptyLibrary()" title="Mover todos tus libros a la papelera">🗑 Vaciar</button>
           <button class="btn-gold perm-add" style="display:none" onclick="quickAddBook()">+ Agregar Libro</button>
         </div>
@@ -2484,6 +2491,8 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 <div class="app-ctxmenu" id="app-ctxmenu"></div>
 <!-- Añadir libro a listas de lectura -->
 <div class="modal" id="modal-lists" style="width:460px"><div id="lists-body"></div></div>
+<div class="modal" id="modal-shelf-share" style="width:620px"><div id="shelf-share-body"></div></div>
+<div class="modal" id="modal-shelf-view" style="width:680px"><div id="shelf-view-body"></div></div>
 
 <!-- Study Overlay -->
 <div id="study-overlay" class="study-overlay">

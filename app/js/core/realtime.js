@@ -10,6 +10,7 @@ function _rtSignature() {
     return JSON.stringify([
       EXPEDIENTES.filter((e) => e.shared).map((e) => e.id).sort(),
       DOCUMENTS.concat(APUNTES, DOCUMENTOS).filter((d) => d.sharedDoc).map((d) => d.id).sort(),
+      (typeof _sharedShelfIndexes !== 'undefined' ? _sharedShelfIndexes : []).map((x) => `${x.id}:${x.updated_at || ''}:${(x.books || []).length}`).sort(),
       (typeof _connections !== 'undefined' ? _connections : []).map((c) => `${String(c.id)}:${c.status || ''}`).sort(),
       STATE.flashcards.length,
     ]);

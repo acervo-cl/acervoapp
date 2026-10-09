@@ -169,6 +169,7 @@ function saveState() {
   clearTimeout(_persistT);
   _persistT = setTimeout(_persistNow, 350);
   syncMaster();
+  if (typeof syncSharedShelfIndexIfMine === 'function') syncSharedShelfIndexIfMine();
 }
 
 function buildViewingPayload() {

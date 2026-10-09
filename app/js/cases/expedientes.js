@@ -1252,6 +1252,52 @@ async function unshareCausa(id){
 //   privadas y, si quiere, puede DEVOLVERLE sus notas al dueño (opt-in).
 // ════════════════════════════════════════════════════════════════
 let _sharedDocIds=new Set();
+let _sharedShelfIndexes=[];
+let _mySharedShelfIndex=null;
+let _sharedShelfSyncT=null;
+const SHARED_SHELF_KIND='bookshelf_index';
+
+function _sharedShelfId(){ return `shelf_${STATE.uid}`; }
+function _shelfIndexBooks(){
+  const docs=(DOCUMENTS||[]).filter(d=>d && !d.sharedDoc);
+  const order=Array.isArray(STATE.docOrder)?STATE.docOrder:[];
+  return docs.slice().sort((a,b)=>{
+    const ia=order.indexOf(a.id), ib=order.indexOf(b.id);
+    return (ia<0?9999:ia)-(ib<0?9999:ib);
+  });
+}
+function _shelfIndexPayload(){
+  const books=_shelfIndexBooks().map(d=>({
+    id:d.id, title:d.title||'Libro', author:d.author||'', subject:d.subject||'', type:d.type||'',
+    pages:d.pages||0, tags:Array.isArray(d.tags)?d.tags.slice():[],
+    status:d.status||'pending', progress:Number(d.progress)||0,
+    topics:((STATE.bookmarks||{})[d.id]||[]).filter(x=>x&&x.label).map(x=>({pos:x.pos||0,label:x.label}))
+  }));
+  return {title:`Estantería de ${STATE.user||'usuario'}`,books,updatedAt:new Date().toISOString()};
+}
+async function pushSharedShelfIndex(){
+  if(typeof sb==='undefined'||!sb||!STATE.uid) return false;
+  const data=_shelfIndexPayload(), id=_sharedShelfId(), updatedAt=new Date().toISOString();
+  try{
+    const {error}=await sb.from('shared_docs').upsert({id,owner_id:STATE.uid,kind:SHARED_SHELF_KIND,data,updated_at:updatedAt});
+    if(error) throw error;
+    _mySharedShelfIndex={id,data,updated_at:updatedAt};
+    return true;
+  }catch(e){ toast('No se pudo compartir el índice: '+(e.message||''),'error'); return false; }
+}
+function syncSharedShelfIndexIfMine(){
+  if(!_mySharedShelfIndex||typeof sb==='undefined'||!sb||!STATE.uid) return;
+  clearTimeout(_sharedShelfSyncT);
+  _sharedShelfSyncT=setTimeout(()=>{ pushSharedShelfIndex(); },900);
+}
+async function unshareShelfIndex(){
+  if(!_mySharedShelfIndex||!confirm('¿Dejar de compartir el índice de tu estantería?')) return;
+  try{
+    const {error}=await sb.from('shared_docs').delete().eq('id',_mySharedShelfIndex.id);
+    if(error) throw error;
+    _mySharedShelfIndex=null; closeAllModals(); toast('Índice dejado de compartir','success');
+  }catch(e){ toast('No se pudo dejar de compartir: '+(e.message||''),'error'); }
+}
 function _ensureSharedSubject(){ if(!SUBJECTS.find(s=>s.id==='__shared__')) SUBJECTS.push({id:'__shared__', name:'Compartidos', icon:'📢', color:'#C9A84C', progress:0, desc:'Libros compartidos contigo.'}); }
 function _findAnyDoc(id){ return DOCUMENTS.find(x=>x.id===id)||APUNTES.find(x=>x.id===id)||DOCUMENTOS.find(x=>x.id===id); }
 function _docKindOf(d){ if(!d) return 'libro'; if(d.kind==='apunte'||APUNTES.includes(d)) return 'apunte'; if(d.kind==='documento'||DOCUMENTOS.includes(d)) return 'documento'; return 'libro'; }
@@ -1288,12 +1334,26 @@ async function loadSharedDocs(){
   for(let i=DOCUMENTOS.length-1;i>=0;i--) if(DOCUMENTOS[i].sharedDoc) DOCUMENTOS.splice(i,1);
   for(let i=ANNOTATIONS.length-1;i>=0;i--) if(ANNOTATIONS[i].shared)  ANNOTATIONS.splice(i,1);
   _sharedDocIds=new Set();
+  _sharedShelfIndexes=[];
+  _mySharedShelfIndex=null;
   try{
     const {data:mem}=await sb.from('shared_doc_members').select('doc_id,role,share_notes').eq('user_id',STATE.uid);
     const myMem={}; (mem||[]).forEach(m=>myMem[m.doc_id]=m);
     const {data:rows,error}=await sb.from('shared_docs').select('*'); if(error) throw error;
     let _fcGot=0;
     for(const r of (rows||[])){
+      if((r.kind||'')===SHARED_SHELF_KIND){
+        if(r.owner_id===STATE.uid){
+          _mySharedShelfIndex={id:r.id,data:r.data||{},updated_at:r.updated_at||null};
+        }else if(myMem[r.id]){
+          _sharedShelfIndexes.push({
+            id:r.id, owner_id:r.owner_id, updated_at:r.updated_at||null,
+            title:(r.data||{}).title||'Estantería compartida',
+            books:Array.isArray((r.data||{}).books)?(r.data||{}).books:[]
+          });
+        }
+        continue;
+      }
       _sharedDocIds.add(r.id);
       if((r.kind||'')==='flashpack'){ if(r.owner_id!==STATE.uid) _fcGot+=_importFlashpack(r); continue; }   // pack de flashcards compartido → copia a mi colección (una vez)
       const data=r.data||{}; const doc=data.doc; if(!doc) continue;
