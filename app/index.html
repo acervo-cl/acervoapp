@@ -57,9 +57,10 @@ button{font-family:inherit}
 .topbar-logo{font-family:Georgia,serif;font-size:22px;font-weight:800;color:var(--gold);letter-spacing:-1px;flex-shrink:0}
 .topbar-brand{display:none;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);font-family:Georgia,serif;font-weight:800;font-size:19px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .topbar-sep{width:1px;height:28px;background:rgba(255,255,255,.1)}
-.search-btn{flex:1;max-width:380px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;color:var(--gray2);font-size:13px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:border-color .2s}
+.search-btn{flex:0 1 clamp(240px,22vw,380px);width:clamp(240px,22vw,380px);min-width:240px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;color:var(--gray2);font-size:13px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:border-color .2s}
 .search-btn:hover{border-color:rgba(201,168,76,.4);color:var(--white)}
-.search-btn kbd{margin-left:auto;background:rgba(255,255,255,.07);border-radius:4px;padding:2px 6px;font-size:10px;font-family:inherit}
+.search-btn .sb-lbl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-btn kbd{margin-left:auto;flex:0 0 auto;background:rgba(255,255,255,.07);border-radius:4px;padding:2px 6px;font-size:10px;font-family:inherit}
 .topbar-spacer{flex:1}
 .topbar-center-slot{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .topbar-icon-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 11px;color:var(--gray2);font-size:15px;cursor:pointer;transition:all .2s;flex-shrink:0}
@@ -987,7 +988,17 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   .reader-actions::-webkit-scrollbar{display:none}
 
   /* Mapa mental: canvas un poco más bajo para que quepa con la cabecera fija */
-  .mm-viewport{height:68dvh}
+.mm-viewport{height:68dvh}
+}
+
+/* Escritorio compacto: conserva la barra web sin partir el buscador en varias líneas. */
+@media (min-width:761px) and (max-width:1100px){
+  .topbar-spacer,.topbar-center-slot{display:none}
+  .search-btn{flex:0 1 clamp(220px,30vw,340px);width:auto;min-width:220px;max-width:340px}
+  .primary-nav{gap:4px}
+  .primary-nav .pnav-btn{padding:8px 10px}
+  .primary-nav .pnav-btn span{display:none}
+  .sync-status-label{display:none}
 }
 
 /* ── Círculo de nota (móvil) ── */
@@ -1793,7 +1804,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
     <div class="topbar-logo" onclick="goHome()" style="cursor:pointer" title="Ir al inicio">Acervo</div>
     <div class="topbar-sep"></div>
     <button class="search-btn" onclick="openSearch()" id="search-open-btn">
-      <span class="sb-ico">⌕</span><span class="sb-lbl"> Buscar en toda la biblioteca...</span>
+      <span class="sb-ico">⌕</span><span class="sb-lbl"> Buscar en biblioteca...</span>
       <kbd>⌘K</kbd>
     </button>
     <div class="topbar-spacer"></div>
