@@ -129,8 +129,22 @@ function toggleModalFloat(id) {
 function toggleFS(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
+  const entering = !modal.classList.contains('fullscreen');
+  if (entering && modal.classList.contains('win-mode')) {
+    modal.classList.remove('win-mode');
+    modal.style.left = '';
+    modal.style.top = '';
+    modal.style.width = modal.dataset.baseWidth || '';
+    modal.style.height = modal.dataset.baseHeight || '';
+  }
   _ensureModalControls(modal);
   modal.classList.toggle('fullscreen');
+  if (!modal.classList.contains('fullscreen')) {
+    modal.style.left = '';
+    modal.style.top = '';
+    modal.style.width = modal.dataset.baseWidth || '';
+    modal.style.height = modal.dataset.baseHeight || '';
+  }
   _syncModalControls(modal);
 }
 
@@ -138,6 +152,11 @@ function closeAllModals() {
   document.querySelectorAll('.modal').forEach((modal) => {
     modal.classList.remove('open');
     modal.classList.remove('fullscreen');
+    modal.classList.remove('win-mode');
+    modal.style.left = '';
+    modal.style.top = '';
+    modal.style.width = modal.dataset.baseWidth || '';
+    modal.style.height = modal.dataset.baseHeight || '';
     _syncModalControls(modal);
   });
   document.getElementById('modal-backdrop').classList.remove('open');

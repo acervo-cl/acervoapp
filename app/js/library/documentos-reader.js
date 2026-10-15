@@ -173,12 +173,10 @@ function openReader(docId){
     _winRegisterMobile(docId);   // móvil: cada documento abierto queda en la barra de pastillas
     _initMobReaderSwipe();
   } else {
-    // Libros / documentos de estudio (no de causa): abren FLOTANTES desde el inicio, con fondo borroso (clic fuera cierra)
-    const d=findDoc(docId);
-    if(d && !d.expediente) _enterFloat(_centeredReaderGeom(), true);
+    // Libros / documentos de estudio empiezan como pop-up para mostrar el control de flotacion.
+    // Los documentos de causa conservan su flujo flotante existente mediante openExdoc().
   }
 }
-function _centeredReaderGeom(){ const vw=innerWidth, vh=innerHeight; const w=Math.min(960, vw-60), h=Math.min(Math.round(vh*0.86), vh-70); return {l:Math.round((vw-w)/2), t:Math.max(56, Math.round((vh-h)/2)), w, h}; }
 function _winRegisterMobile(docId){
   const d=findDoc(docId); if(!d) return;
   let w=_winList.find(x=>x.docId===docId);
@@ -353,9 +351,10 @@ function _toggleFloatMax(){
 // Arrastre por la barra superior (solo en flotante). No arrastra si tocas un botón/control.
 let _rfDragInit=false;
 function _enableReaderDrag(){
-  if(_rfDragInit) return; _rfDragInit=true;
+  if(_rfDragInit) return;
   const rs=document.getElementById('reader-screen');
   const bar=rs&&rs.querySelector('.reader-topbar'); if(!bar) return;
+  _rfDragInit=true;
   let sx=0,sy=0,ox=0,oy=0,dragging=false,zone=null;
   const skip=t=>t.closest('button,input,select,textarea,a,.reader-actions,.reader-prog-group');
   bar.addEventListener('pointerdown', e=>{
