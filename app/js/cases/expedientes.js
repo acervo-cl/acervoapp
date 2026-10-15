@@ -592,24 +592,44 @@ async function deleteExpediente(id){
   // CASO A: causa que ME compartieron (no soy dueño) → borrar solo quita MI acceso (salir del equipo)
   if(e.shared){
     if(!confirm('Esta causa te la compartieron. ¿Quitar tu acceso? (no se borra para el resto; el dueño puede volver a compartírtela)')) return;
-    try{ if(typeof sb!=='undefined'&&sb) await sb.from('shared_causa_members').delete().eq('causa_id',id).eq('user_id',STATE.uid); }catch(err){ toast('No se pudo salir: '+(err.message||''),'error'); return; }
+    try{
+      if(typeof sb!=='undefined'&&sb){
+        const {error}=await sb.from('shared_causa_members').delete().eq('causa_id',id).eq('user_id',STATE.uid);
+        if(error) throw error;
+      }
+    }catch(err){ toast('No se pudo salir: '+(err.message||''),'error'); return; }
     for(let i=EXDOCS.length-1;i>=0;i--) if(EXDOCS[i].expediente===id && EXDOCS[i].shared) EXDOCS.splice(i,1);
+    for(let i=(STATE.recordatorios||[]).length-1;i>=0;i--) if(STATE.recordatorios[i].causaId===id && STATE.recordatorios[i].shared) STATE.recordatorios.splice(i,1);
     const ix=EXPEDIENTES.findIndex(x=>x.id===id); if(ix>=0) EXPEDIENTES.splice(ix,1);
     _sharedCausaIds.delete(id);
+    try{ saveState(); }catch(_){ }
+    if(_curExp===id) closeExpediente();
+    if(typeof closeFolderWin==='function') closeFolderWin(id);
     renderExpedientes(); toast('Saliste de la causa compartida');
     return;
   }
   // CASO B: causa PROPIA (soy dueño/creador). Solo el dueño la borra de verdad.
   const shared=_sharedCausaIds.has(id);
   if(!confirm('¿Borrar la causa "'+(e.name||'')+'" y sus documentos?'+(shared?'\n\n⚠️ Está compartida: se eliminará para TODO el equipo.':''))) return;
-  if(shared && typeof sb!=='undefined'&&sb){ try{ await sb.from('shared_causas').delete().eq('id',id); }catch(err){} _sharedCausaIds.delete(id); }
+  if(shared && typeof sb!=='undefined'&&sb){
+    try{
+      const {error:membersError}=await sb.from('shared_causa_members').delete().eq('causa_id',id);
+      if(membersError) throw membersError;
+      const {error}=await sb.from('shared_causas').delete().eq('id',id);
+      if(error) throw error;
+      _sharedCausaIds.delete(id);
+    }catch(err){ toast('No se pudo borrar la causa compartida: '+(err.message||''),'error'); return; }
+  }
   // A la papelera (recuperable): causa + sus documentos + sus notas. Los archivos NO se borran aún.
   const exdocsCausa=EXDOCS.filter(x=>x.expediente===id);
   const annsCausa=ANNOTATIONS.filter(a=>exdocsCausa.some(x=>x.id===a.docId));
   trashAdd('causa', e.name||'Causa', {expediente:e, exdocs:exdocsCausa, anns:annsCausa});
   for(let j=ANNOTATIONS.length-1;j>=0;j--) if(exdocsCausa.some(x=>x.id===ANNOTATIONS[j].docId)) ANNOTATIONS.splice(j,1);
   for(let i=EXDOCS.length-1;i>=0;i--) if(EXDOCS[i].expediente===id) EXDOCS.splice(i,1);
+  for(let i=(STATE.recordatorios||[]).length-1;i>=0;i--) if(STATE.recordatorios[i].causaId===id && STATE.recordatorios[i].shared) STATE.recordatorios.splice(i,1);
   const ix=EXPEDIENTES.findIndex(x=>x.id===id); if(ix>=0) EXPEDIENTES.splice(ix,1);
+  if(_curExp===id) closeExpediente();
+  if(typeof closeFolderWin==='function') closeFolderWin(id);
   saveState(); renderExpedientes(); toast('Causa movida a la papelera 🗑');
 }
 // ══════════════════ PAPELERA (recuperar lo borrado) ══════════════════
@@ -1157,10 +1177,12 @@ async function loadSharedCausas(){
     const roleById={}; (mem||[]).forEach(m=>{ roleById[m.causa_id]=m.role; });
     const {data:rows,error}=await sb.from('shared_causas').select('*');
     if(error) throw error;
+    const memberIds=new Set((mem||[]).map(m=>String(m.causa_id)));
     (rows||[]).forEach(r=>{
+      if(!sharedCausaIsVisible(r,memberIds,STATE.uid)) return;
       _sharedCausaIds.add(r.id);
       const d=r.data||{}; const ex=d.expediente; if(!ex) return;
-      if(r.owner_id===STATE.uid){
+      if(String(r.owner_id)===String(STATE.uid)){
         const existing=_findLocalCausaForShared(r.id,ex);
         if(!existing){
           EXPEDIENTES.push({...ex,id:r.id,shared:false});
@@ -1184,6 +1206,13 @@ async function loadSharedCausas(){
       if(!STATE.recordatorios) STATE.recordatorios=[];
       (d.recordatorios||[]).forEach(rec=>{ if(!rec||!rec.id) return; if(STATE.recordatorios.find(x=>x.id===rec.id)) return; STATE.recordatorios.push({...rec, causaId:r.id, shared:true, sharedOwner:r.owner_id}); _sharedAddedCliente=true; });
     });
+    for(let i=(STATE.recordatorios||[]).length-1;i>=0;i--){
+      const rec=STATE.recordatorios[i];
+      if(rec.shared && ![..._sharedCausaIds].some(id=>String(id)===String(rec.causaId))){
+        STATE.recordatorios.splice(i,1);
+        _sharedAddedCliente=true;
+      }
+    }
     if(_sharedAddedCliente){ _sharedAddedCliente=false; try{ saveState(); }catch(_){} }
   }catch(e){ /* tablas pueden no existir aún: silencioso */ }
 }
@@ -1251,7 +1280,12 @@ async function setCausaMemberRole(id,uid,role){ try{ await sb.from('shared_causa
 async function removeCausaMember(id,uid){ try{ await sb.from('shared_causa_members').delete().eq('causa_id',id).eq('user_id',uid); openExpShare(id); }catch(e){ toast('Error: '+(e.message||''),'error'); } }
 async function unshareCausa(id){
   if(!confirm('¿Dejar de compartir esta causa? Los demás perderán el acceso.')) return;
-  try{ await sb.from('shared_causas').delete().eq('id',id); }catch(e){ toast('Error: '+(e.message||''),'error'); return; }
+  try{
+    const {error:membersError}=await sb.from('shared_causa_members').delete().eq('causa_id',id);
+    if(membersError) throw membersError;
+    const {error}=await sb.from('shared_causas').delete().eq('id',id);
+    if(error) throw error;
+  }catch(e){ toast('Error: '+(e.message||''),'error'); return; }
   _sharedCausaIds.delete(id); toast('Dejaste de compartir','success'); closeAllModals(); renderExpedientes();
 }
 // ════════════════════════════════════════════════════════════════
