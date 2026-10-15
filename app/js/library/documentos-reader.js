@@ -226,6 +226,9 @@ function _openReaderCore(docId) {
 
   const isAp = d.kind==='apunte';
   const isEditable = isAp || d.kind==='exescrito';   // apuntes y escritos de expediente se editan en vivo
+  const readerScreen = document.getElementById('reader-screen');
+  const isBook = d.kind==='libro' || DOCUMENTS.includes(d);
+  if(readerScreen) readerScreen.classList.toggle('reader-book', isBook);
   const editBtn = document.getElementById('reader-edit-btn');
   if(editBtn) editBtn.style.display = (canEditDoc(d) && !isEditable) ? '' : 'none';
   // editor en vivo: barra de formato; sin barra de %; convertir solo para apuntes
@@ -413,7 +416,7 @@ function _enableReaderResize(){
     });
   });
 }
-// Menú ⋯ (más acciones): junta en flotante los botones ocultos (índice, compartir, etc.) + cerrar
+// Menú ⋯ (más acciones): junta las acciones secundarias (notas, índice, compartir, etc.) + cerrar
 function openReaderMore(ev){
   ev&&ev.stopPropagation();
   let dd=document.getElementById('reader-more-dd');
@@ -421,9 +424,9 @@ function openReaderMore(ev){
     document.addEventListener('click', e=>{ if(!e.target.closest('#reader-more-dd,#btn-reader-more,#rmob-more')) dd.classList.remove('open'); }); }
   if(dd.classList.contains('open')){ dd.classList.remove('open'); return; }
   dd.innerHTML=''; let n=0;
-  document.querySelectorAll('#reader-screen .reader-actions .rf-hide').forEach(b=>{
+  const menuButtons = document.querySelectorAll('#reader-screen .reader-actions .rf-hide, #reader-screen .reader-actions .reader-more-action');
+  menuButtons.forEach(b=>{
     if(b.style.display==='none') return;
-    if(b.id==='btn-index') return;   // el índice tiene su propio botón (📑 rmob-index); no va en el ⋯
     n++;
     const it=document.createElement('button'); it.className='reader-more-item'; it.textContent=b.textContent.trim();
     it.onclick=()=>{ dd.classList.remove('open'); b.click(); };

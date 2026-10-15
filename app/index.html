@@ -501,6 +501,7 @@ body.is-admin .doc-card:hover .card-admin-btns{display:flex}
 .reader-prog-fill{height:100%;background:var(--gold);border-radius:2px}
 .reader-prog-label{font-size:12px;color:var(--gold);font-weight:700}
 .reader-action-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 11px;color:var(--gray2);cursor:pointer;font-size:12px;transition:all .2s}
+.reader-window-btn{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;line-height:1;flex:0 0 auto}
 .reader-action-btn:hover{color:var(--white);border-color:rgba(201,168,76,.3)}
 .reader-action-btn.active{background:rgba(201,168,76,.1);border-color:var(--gold);color:var(--gold)}
 .reader-body{flex:1;min-height:0;display:flex;overflow:hidden}
@@ -1187,15 +1188,13 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 #reader-screen.reader-float .reader-back{display:none}
 #reader-screen.reader-pop .reader-back{display:none}   /* en pop-up: clic en el fondo borroso cierra; no hace falta "Volver" */
 #reader-screen.reader-float #btn-reader-float{display:none}   /* el dock lo reemplaza */
-#reader-screen.reader-float #btn-reader-full{display:none}    /* nada de ⛶ flotando: se usa el doble clic / esquinas */
 /* En flotante, el control inferior de tamaño/zoom se vuelve SUTIL (chico y translúcido); al pasar el mouse, normal */
 #reader-screen.reader-float .reader-fontctrl{opacity:.28;transform:scale(.82);transform-origin:bottom left;
   box-shadow:none;padding:5px;bottom:10px;left:10px;transition:opacity .15s,transform .15s}
 #reader-screen.reader-float .reader-fontctrl:hover{opacity:1;transform:scale(1);box-shadow:0 8px 24px rgba(0,0,0,.45)}
-/* Controles de ventana (solo en flotante): minimizar y cerrar */
-#btn-reader-min,#btn-reader-close{display:none}
-#reader-screen.reader-float #btn-reader-min,
-#reader-screen.reader-float #btn-reader-close{display:inline-flex}
+/* Controles de ventana: cierre en todos los modos; minimizar solo cuando existe una ventana flotante registrada. */
+#btn-reader-close{display:inline-flex}
+#btn-reader-min{display:none}
 #btn-reader-close:hover{background:#7a2b2b;color:#fff}
 #reader-screen.win-min{display:none!important}   /* ventana minimizada (queda en la barra de ventanas) */
 /* ── Barra inferior de ventanas (taskbar estilo escritorio) ── */
@@ -1231,15 +1230,16 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
 .snap-win .rf-resize{display:block}
 #btn-reader-dock,#btn-reader-more{display:none}
 #reader-screen.reader-float #btn-reader-dock,
-#reader-screen.reader-float #btn-reader-more{display:inline-flex}
+#reader-screen.reader-float #btn-reader-more,
+#reader-screen.reader-float #btn-reader-full,
+#reader-screen.reader-float #btn-reader-min{display:inline-flex}
 #reader-screen.reader-float .rf-hide{display:none!important}  /* compartir/etc. van al ⋯ */
-/* Lector flotante de libros: índice VISIBLE, sin barra de %, y solo default o pantalla completa (sin des-flotar/minimizar/＋nota) */
-#reader-screen.reader-float #btn-index{display:inline-flex!important}
-#reader-screen.reader-float .reader-prog-group,
-#reader-screen.reader-float #btn-free-note,
-#reader-screen.reader-float #btn-reader-dock,
-#reader-screen.reader-float #btn-reader-min{display:none!important}
-#reader-screen.reader-float #btn-reader-full{display:inline-flex!important}
+/* Los documentos flotantes mantienen la misma botonera; solo se compacta el contenido secundario. */
+#reader-screen.reader-float .reader-prog-group{display:none!important}
+#reader-screen.reader-float #btn-reader-dock{display:inline-flex}
+/* En libros, notas, agregar nota e índice viven dentro de ⋯ en todos los modos. */
+#reader-screen.reader-book .reader-more-action{display:none!important}
+#reader-screen.reader-book #btn-reader-more{display:inline-flex}
 /* botón de formato: solo en flotante y si el documento es editable */
 #btn-reader-fmt{display:none}
 #reader-screen.reader-float.editable-doc #btn-reader-fmt{display:inline-flex}
@@ -1392,6 +1392,13 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   .reader-actions .reader-action-btn:not(.rmob){display:none!important}
   .reader-actions .rmob{display:inline-flex!important}
   .reader-minimap{display:none!important}
+}
+/* En móvil, las acciones de lectura siguen el mismo patrón: notas e índice viven en ⋯. */
+@media(max-width:760px), (max-height:500px) and (orientation:landscape){
+  .reader-actions #rmob-notes,
+  .reader-actions #rmob-index{display:none!important}
+  .reader-actions #rmob-more,
+  .reader-actions #rmob-close{display:inline-flex!important}
 }
 /* Mostrar/ocultar por tamaño (móvil declutter) */
 .only-mobile{display:none}
@@ -2127,9 +2134,9 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
       <div class="reader-prog-label" id="reader-prog-label">35%</div>
     </div>
     <div class="reader-actions" style="display:flex;gap:7px;align-items:center">
-      <button class="reader-action-btn" id="btn-annotations" onclick="toggleNotes()">💬 Notas</button>
-      <button class="reader-action-btn" id="btn-free-note" onclick="addFreeNote()">＋ Nota</button>
-      <button class="reader-action-btn rf-hide" id="btn-index" onclick="openIndex()">📑 Índice</button>
+      <button class="reader-action-btn reader-more-action rf-hide" id="btn-annotations" onclick="toggleNotes()">💬 Notas</button>
+      <button class="reader-action-btn reader-more-action rf-hide" id="btn-free-note" onclick="addFreeNote()">＋ Nota</button>
+      <button class="reader-action-btn reader-more-action rf-hide" id="btn-index" onclick="openIndex()">📑 Índice</button>
       <button class="reader-action-btn rf-hide" id="reader-edit-btn" style="display:none" onclick="openEditCurrentDoc()">✏️ Editar</button>
       <button class="reader-action-btn rf-hide" id="btn-convert" style="display:none" onclick="convertApunteToLibro(STATE.currentDocId)">📕 Convertir en libro</button>
       <button class="reader-action-btn rf-hide" id="btn-reader-allnotes" style="display:none" onclick="toggleAllNotes()" title="Ver también las notas de otros lugares">👁 Ver todas</button>
@@ -2137,13 +2144,13 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
       <button class="reader-action-btn rf-hide" id="btn-reader-download" style="display:none" onclick="downloadCurrentDoc()" title="Descargar el archivo original (PDF/imagen)">⬇ Descargar</button>
       <button class="reader-action-btn rf-hide" id="btn-reader-ocr" style="display:none" onclick="ocrCurrentDoc()" title="Reconocer el texto de la imagen (OCR)">🔍 Leer texto</button>
       <button class="reader-action-btn rf-hide" id="btn-reader-share" onclick="openDocShare(STATE.currentDocId)" title="Compartir con colegas">🤝 Compartir</button>
-      <button class="reader-action-btn" id="btn-reader-fmt" onclick="toggleFloatFmt(event)" title="Formato de texto">Aa</button>
-      <button class="reader-action-btn" id="btn-reader-more" onclick="openReaderMore(event)" title="Más acciones (índice, compartir…)">⋯</button>
-      <button class="reader-action-btn" id="btn-reader-float" onclick="toggleReaderFloat()" title="Ventana flotante: mover y dejar encima de la causa (copiar datos y pegar aquí)">⧉</button>
-      <button class="reader-action-btn" id="btn-reader-full" onclick="toggleReaderFull()" title="Pantalla completa">⛶</button>
-      <button class="reader-action-btn" id="btn-reader-min" onclick="minimizeReaderWin()" title="Minimizar a la barra de ventanas">—</button>
-      <button class="reader-action-btn" id="btn-reader-close" onclick="closeReaderWin()" title="Cerrar ventana">✕</button>
-      <!-- Barra compacta SOLO móvil: 💬 notas · 📑 índice · ⋯ más · ✕ cerrar (agregar nota = doble/dos dedos en el texto) -->
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-fmt" onclick="toggleFloatFmt(event)" title="Formato de texto">Aa</button>
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-more" onclick="openReaderMore(event)" title="Más acciones">⋯</button>
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-float" onclick="toggleReaderFloat()" title="Ventana flotante">⧉</button>
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-full" onclick="toggleReaderFull()" title="Pantalla completa">⛶</button>
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-min" onclick="minimizeReaderWin()" title="Minimizar a la barra de ventanas">—</button>
+      <button class="reader-action-btn reader-window-btn" id="btn-reader-close" onclick="closeReaderWin()" title="Cerrar ventana">✕</button>
+      <!-- Barra compacta SOLO móvil: ⋯ más · ✕ cerrar (notas e índice están dentro de ⋯) -->
       <button class="reader-action-btn rmob" id="rmob-notes" onclick="toggleNotes()" title="Notas">💬</button>
       <button class="reader-action-btn rmob" id="rmob-index" onclick="openIndex('rmob-index')" title="Índice de temas">📑</button>
       <button class="reader-action-btn rmob" id="rmob-more" onclick="openReaderMore(event)" title="Más acciones">⋯</button>
