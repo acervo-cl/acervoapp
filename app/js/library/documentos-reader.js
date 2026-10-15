@@ -680,7 +680,7 @@ function _setSelFontSize(px){
 // Zoom de VISUALIZACIÓN del editor (A+/A−): agranda/achica en pantalla SIN cambiar el tamaño real del texto ni el PDF.
 let _escZoom=1;
 function _applyEscZoom(){ const b=document.getElementById('reader-doc-body'); if(b) b.style.zoom=String(_escZoom); }
-function _escZoomStep(d){ _escZoom=Math.min(2.2, Math.max(0.5, Math.round((_escZoom+d)*100)/100)); _applyEscZoom(); toast('Vista: '+Math.round(_escZoom*100)+'%'); }
+function _escZoomStep(d){ _escZoom=Math.min(2.2, Math.max(0.5, Math.round((_escZoom+d)*100)/100)); _applyEscZoom(); toast('Vista: '+Math.round(_escZoom*100)+'%','','reader-size'); }
 // Inserta HTML en la posición del cursor del editor (para piezas/modelos)
 function _insertHtmlAtCursor(b, html){
   if(!b) return; b.focus();
@@ -1225,10 +1225,10 @@ function setFontRowMode(mode){ const r=document.getElementById('rf-doc-row'); if
     : `<span title="Tamaño de letra">📄</span><button onclick="changeReaderFont(-1)">A−</button><button onclick="changeReaderFont(1)">A+</button>`;
 }
 function changeReaderFont(d){
-  if(document.getElementById('pdf-zoom')){ setPdfZoom((_pdfZoom||1) + d*0.2); toast('Zoom PDF: '+Math.round((_pdfZoom||1)*100)+'%'); return; }   // en PDF, los botones acercan/alejan
-  STATE.readerFontPx=Math.max(11,Math.min(30,STATE.readerFontPx+d)); applyReaderFont(); saveState(); setTimeout(buildMinimap,30); toast('Texto del documento: '+STATE.readerFontPx+'px');
+  if(document.getElementById('pdf-zoom')){ setPdfZoom((_pdfZoom||1) + d*0.2); toast('Zoom PDF: '+Math.round((_pdfZoom||1)*100)+'%','','reader-size'); return; }   // en PDF, los botones acercan/alejan
+  STATE.readerFontPx=Math.max(11,Math.min(30,STATE.readerFontPx+d)); applyReaderFont(); saveState(); setTimeout(buildMinimap,30); toast('Texto del documento: '+STATE.readerFontPx+'px','','reader-size');
 }
-function changeNoteFont(d){ STATE.noteFontPx=Math.max(10,Math.min(22,STATE.noteFontPx+d)); renderNotes(); saveState(); toast('Texto de notas: '+STATE.noteFontPx+'px'); }
+function changeNoteFont(d){ STATE.noteFontPx=Math.max(10,Math.min(22,STATE.noteFontPx+d)); renderNotes(); saveState(); toast('Texto de notas: '+STATE.noteFontPx+'px','','reader-notes-size'); }
 
 // ── selección de texto → tooltip ──
 let lastSelectionText = '', lastSelRect = null, lastSelOcc = 0;
