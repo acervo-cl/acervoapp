@@ -109,9 +109,10 @@ function rwStepDatos() {
   const esc = _RW.escs[0];
   const vars = (pz.variables || []).map((v) => {
     const val = (esc.vars && esc.vars[v.id]) || '';
+    const isDate = v.tipo === 'fecha' || /(^|[_\s-])fecha([_\s-]|$)/i.test(v.id || '') || /^\s*fecha\b/i.test(v.label || '');
     return v.tipo === 'textarea'
       ? `<div class="form-row"><label class="form-label">${escapeHtml(v.label || v.id)}</label><textarea class="form-textarea" style="min-height:60px" oninput="rwSetVar('${pz.id}','${v.id}',this.value)" placeholder="${escapeHtml(v.placeholder || '')}">${escapeHtml(val)}</textarea></div>`
-      : `<div class="form-row"><label class="form-label">${escapeHtml(v.label || v.id)}</label><input class="form-input" oninput="rwSetVar('${pz.id}','${v.id}',this.value)" value="${escapeHtml(val)}" placeholder="${escapeHtml(v.placeholder || '')}"></div>`;
+      : `<div class="form-row"><label class="form-label">${escapeHtml(v.label || v.id)}</label><input class="form-input" type="${isDate ? 'date' : 'text'}" oninput="rwSetVar('${pz.id}','${v.id}',this.value)" value="${escapeHtml(isDate ? toDateInputValue(val) : val)}" placeholder="${escapeHtml(isDate ? '' : (v.placeholder || ''))}"></div>`;
   }).join('');
   return `<div class="partes-h">Comparecientes / Partes</div>${roles}${vars ? `<div class="partes-h" style="margin-top:10px">Otros datos</div>${vars}` : ''}
     <div class="modal-footer"><button class="btn-ghost" onclick="rwGo(-1)">← Atrás</button><button class="btn-gold" onclick="rwGo(1)">Revisar →</button></div>`;

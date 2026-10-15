@@ -470,6 +470,7 @@ body.is-admin .doc-card:hover .card-admin-btns{display:flex}
 .form-row{margin-bottom:14px}
 .form-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray2);margin-bottom:6px;display:block}
 .form-input,.form-select,.form-textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(201,168,76,.15);border-radius:9px;padding:11px 14px;color:var(--white);font-size:14px;outline:none;transition:border-color .2s;font-family:inherit}
+input[type="date"]{color-scheme:dark}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold)}
 .form-select option{background:var(--navy2);color:var(--white)}
 .form-textarea{resize:vertical;min-height:90px;line-height:1.5}
@@ -2595,6 +2596,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
   <div class="stats-bar" id="stats-bar"></div>
   <div class="modal-footer"><button class="btn-gold" onclick="closeAllModals()">Cerrar</button></div>
 </div>
+<div class="modal" id="modal-goal" style="width:480px"><div id="goal-body"></div></div>
 
 <!-- POMODORO GLOBAL (fijo en pantalla) -->
 <div class="pomo-wrap" id="pomo-wrap" style="display:none">
@@ -2902,7 +2904,7 @@ const MODELOS_DEFAULT=[
     portanto:"tener por interpuesta la demanda, acogerla en todas sus partes, con costas."},
   {id:"contrato_arriendo",nombre:"Contrato de arrendamiento",categoria:"contrato",usaMembrete:false,
     roles:[{key:"arrendador",label:"Arrendador"},{key:"arrendatario",label:"Arrendatario"}],
-    variables:[{id:"direccion_inmueble",label:"Dirección del inmueble",tipo:"input"},{id:"renta",label:"Renta mensual",tipo:"input"},{id:"fecha_inicio",label:"Fecha de inicio",tipo:"input"}],
+    variables:[{id:"direccion_inmueble",label:"Dirección del inmueble",tipo:"input"},{id:"renta",label:"Renta mensual",tipo:"input"},{id:"fecha_inicio",label:"Fecha de inicio",tipo:"fecha"}],
     cabecera:"CONTRATO DE ARRENDAMIENTO\n\nEn Santiago, a {{fecha}}, entre {{arrendador.nombre}}, RUT {{arrendador.rut}}, en adelante «el arrendador»; y {{arrendatario.nombre}}, RUT {{arrendatario.rut}}, en adelante «el arrendatario», se conviene lo siguiente:",
     cuerpo:"PRIMERO: El arrendador da en arrendamiento al arrendatario el inmueble ubicado en [direccion_inmueble].\n\nSEGUNDO: La renta mensual será de [renta], pagadera dentro de los primeros cinco días de cada mes.\n\nTERCERO: El presente contrato regirá a contar del [fecha_inicio] y su duración será de un año renovable.",
     pie:"Para constancia, firman en dos ejemplares de igual tenor:\n\n\n______________________               ______________________\n   {{arrendador.nombre}}                          {{arrendatario.nombre}}"},

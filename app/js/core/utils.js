@@ -38,6 +38,15 @@ function fmtDate(ts) {
   }
 }
 
+// Native date inputs require ISO values, while older local records may use dd/mm/yyyy.
+function toDateInputValue(value) {
+  const text = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const legacy = text.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+  if (!legacy) return '';
+  return `${legacy[3]}-${legacy[2].padStart(2, '0')}-${legacy[1].padStart(2, '0')}`;
+}
+
 function fillMarkers(tpl, map) {
   let text = tpl || '';
   Object.keys(map).forEach((key) => {
