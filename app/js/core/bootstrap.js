@@ -6,6 +6,7 @@ if (window.pdfjsLib) {
 // Supabase
 const SUPA_URL = 'https://kjoapvkcztkhjxdzjfuw.supabase.co';
 const SUPA_KEY = 'sb_publishable_nSVo9ncRoiuEdHF0feWQ-A_RXUBq2du';
+window.acervoSupabaseUrl = SUPA_URL;
 
 function _rememberSession() {
   try {

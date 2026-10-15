@@ -59,7 +59,7 @@ function renderAgenda() {
   host.innerHTML = `<div class="agenda-wrap">
     <div class="cal-main">
       <div class="cal-head"><button class="btn-ghost" onclick="agendaNav(-1)">‹</button>
-        <div class="cal-title">${_MESES[m]} ${y}</div>
+      <div class="cal-title">${_MESES[m]} ${y}</div>
         <button class="btn-ghost" onclick="agendaNav(1)">›</button>
         <button class="btn-ghost" onclick="agendaHoy()" style="margin-left:8px">Hoy</button></div>
       <div class="cal-grid cal-dow">${_DIASS.map(d => `<div class="cal-dowc">${d}</div>`).join('')}</div>
