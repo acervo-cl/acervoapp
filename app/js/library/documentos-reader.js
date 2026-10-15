@@ -800,6 +800,7 @@ function moveTopbarTo(where){
 // ── Renderizado del cuerpo del documento según tipo ──
 async function renderDocBody(d) {
   const body = document.getElementById('reader-doc-body');
+  if (!(d.hasFile && d.fileKind==='pdf')) _stopPdfLayoutWatch();
   try {
     if (d.hasFile && d.fileKind==='pdf')        await renderPdf(d, body);
     else if (d.hasFile && d.fileKind==='docx')  await renderDocx(d, body);
@@ -849,27 +850,59 @@ function mdToHtml(t){
     .split(/\n{2,}/).map(b=>/^<(h\d|li)/.test(b.trim())?b:`<p>${b.replace(/\n/g,'<br>')}</p>`).join('');
 }
 
-let _pdfZoom=1, _pdfIO=null, _pdfDoc=null, _pdfCurD=null, _pdfW0=0, _pdfReW=null;
-// Re-ajustar el PDF al ancho cuando cambia el tamaño de pantalla (girar el celular) — vuelve a "ajustado al ancho"
-window.addEventListener('resize', ()=>{
-  if(!document.getElementById('pdf-zoom') || !_pdfCurD) return;
-  if(Math.abs(window.innerWidth-_pdfW0) < 30) return;   // solo cambios reales de ancho (rotación)
-  _pdfW0=window.innerWidth; clearTimeout(_pdfReW);
-  _pdfReW=setTimeout(()=>{ const b=document.getElementById('reader-doc-body'); if(b && _pdfCurD) renderPdf(_pdfCurD, b); }, 250);
-});
-async function renderPdf(d, body) {
+let _pdfZoom=1, _pdfIO=null, _pdfDoc=null, _pdfCurD=null, _pdfContW=0, _pdfResizeObserver=null, _pdfResizeTimer=null, _pdfRenderToken=0;
+const MIN_PDF_ZOOM=0.5;
+
+function _pdfAvailableWidth(){
+  const zoom=document.getElementById('pdf-zoom');
+  const body=document.getElementById('reader-doc-body');
+  return Math.max(220, ((zoom&&zoom.clientWidth)||(body&&body.clientWidth)||700)-2);
+}
+function _stopPdfLayoutWatch(){
+  _pdfRenderToken++;
+  clearTimeout(_pdfResizeTimer); _pdfResizeTimer=null;
+  if(_pdfResizeObserver){ try{ _pdfResizeObserver.disconnect(); }catch(_){} }
+  if(_pdfIO){ try{ _pdfIO.disconnect(); }catch(_){} _pdfIO=null; }
+  _pdfCurD=null; _pdfContW=0; _pdfDoc=null;
+}
+function _schedulePdfLayout(){
+  if(!_pdfCurD || !document.getElementById('pdf-zoom')) return;
+  const nextW=_pdfAvailableWidth();
+  if(Math.abs(nextW-_pdfContW)<2) return;
+  clearTimeout(_pdfResizeTimer);
+  _pdfResizeTimer=setTimeout(()=>{
+    const body=document.getElementById('reader-doc-body'), d=_pdfCurD;
+    if(body && d) renderPdf(d, body, {preserveZoom:true}).catch(()=>{});
+  },140);
+}
+function _watchPdfLayout(){
+  const rs=document.getElementById('reader-screen');
+  if(!rs || typeof ResizeObserver==='undefined') return;
+  if(!_pdfResizeObserver) _pdfResizeObserver=new ResizeObserver(_schedulePdfLayout);
+  _pdfResizeObserver.disconnect();
+  _pdfResizeObserver.observe(rs);
+}
+// Reajusta el PDF tanto al girar la pantalla como al redimensionar la ventana flotante.
+window.addEventListener('resize', _schedulePdfLayout);
+
+async function renderPdf(d, body, options={}) {
+  const preserveZoom=!!options.preserveZoom && _pdfCurD===d;
+  const requestedZoom=preserveZoom ? _pdfZoom : 1;
+  _stopPdfLayoutWatch();
+  const renderToken=++_pdfRenderToken;
   if(!window.pdfjsLib){ body.innerHTML='<div style="color:var(--gray2)">Cargando visor PDF…</div>'; await waitFor(()=>window.pdfjsLib); }
   body.innerHTML='<div style="color:var(--gray2)">Cargando archivo…</div>';
   const blob = await getFileBlob(d.id);
   if(!blob){ body.innerHTML='<div style="color:var(--gray2)">Archivo no encontrado.</div>'; return; }
   if(_pdfIO){ try{ _pdfIO.disconnect(); }catch(_){} _pdfIO=null; }   // limpia el observer anterior
   const pdf = await pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise;
+  if(renderToken!==_pdfRenderToken) return;
   _pdfDoc=pdf;
-  body.innerHTML = `<div style="font-size:11px;color:var(--gray2);margin-bottom:10px">📄 ${d.fileName||'PDF'} · ${pdf.numPages} páginas · pellizca/Aa para acercar</div>`;
+  body.innerHTML = `<div style="font-size:11px;color:var(--gray2);margin-bottom:10px">📄 ${d.fileName||'PDF'} · ${pdf.numPages} páginas · pellizca/Aa para acercar o alejar</div>`;
   const zoom=document.createElement('div'); zoom.id='pdf-zoom'; body.appendChild(zoom);
   // Ancho REAL disponible (respetando el padding del contenedor) → la página se ajusta EXACTO al ancho, sin desbordar
   const contW = Math.max(220, (zoom.clientWidth || body.clientWidth || 700) - 2);
-  _pdfZoom=1; _pdfCurD=d; _pdfW0=window.innerWidth;
+  _pdfZoom=Math.max(MIN_PDF_ZOOM, Math.min(4, requestedZoom)); _pdfCurD=d; _pdfContW=contW;
   const dpr=Math.min(2, window.devicePixelRatio||1.5);
   // 1) Detección de escaneado con la 1ª página (rápido)
   let _scanLen=0;
@@ -883,13 +916,15 @@ async function renderPdf(d, body) {
     const pageDiv=document.createElement('div'); pageDiv.className='pdf-page pdf-lazy'; pageDiv.dataset.page=i; pageDiv.dataset.dpr=dpr; pageDiv.dataset.contw=contW;
     // tamaño provisional con el fit de la 1ª página (se corrige al dibujar); evita reflow feo
     const fitW=Math.round(fit0*base1.width), fitH=Math.round(fit0*base1.height);
-    pageDiv.dataset.fitw=fitW; pageDiv.dataset.fith=fitH; pageDiv.style.width=fitW+'px'; pageDiv.style.height=fitH+'px';
+    pageDiv.dataset.fitw=fitW; pageDiv.dataset.fith=fitH;
+    pageDiv.style.width=Math.round(fitW*_pdfZoom)+'px'; pageDiv.style.height=Math.round(fitH*_pdfZoom)+'px';
     zoom.appendChild(pageDiv);
   }
   // 3) Dibuja solo lo que entra en pantalla (y un poco antes/después)
   const root=document.getElementById('reader-text');
   _pdfIO=new IntersectionObserver((ents)=>{ ents.forEach(en=>{ if(en.isIntersecting) renderPdfPage(en.target); }); }, {root, rootMargin:'1000px 0px'});
   zoom.querySelectorAll('.pdf-page').forEach(p=>_pdfIO.observe(p));
+  _watchPdfLayout();
   if(isMobile()) attachPdfZoom(body);
   setFontRowMode('pdf');   // los botones de abajo pasan a acercar/alejar
   setTimeout(updatePdfPageNum, 120);
@@ -919,7 +954,7 @@ async function renderPdfPage(pageDiv){
 // Zoom del PDF manteniendo el punto focal (lo que tocas/el centro), no la esquina
 function setPdfZoom(z, cx, cy){
   const rt=document.getElementById('reader-text'), zoomEl=document.getElementById('pdf-zoom'); if(!rt||!zoomEl) return;
-  const old=_pdfZoom||1; z=Math.max(1, Math.min(4, z));
+  const old=_pdfZoom||1; z=Math.max(MIN_PDF_ZOOM, Math.min(4, z));
   const areaRect=rt.getBoundingClientRect(), zoomRect=zoomEl.getBoundingClientRect();
   const px=(cx!=null?cx:zoomRect.left+zoomRect.width/2), py=(cy!=null?cy:areaRect.top+Math.min(areaRect.height, zoomEl.clientHeight)/2);
   const pages=[...zoomEl.querySelectorAll('.pdf-page')];
