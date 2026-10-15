@@ -1934,7 +1934,7 @@ body.focus-mode::after{content:'';position:fixed;inset:0;pointer-events:none;z-i
           <div class="exp-viewtog hide-on-mobile"><button id="expv-libre" class="exp-vbtn" onclick="setExpView('libre')" title="Libre (arrastrar)">✋</button><button id="expv-grid" class="exp-vbtn" onclick="setExpView('grid')" title="Grilla ordenada">🗂️</button><button id="expv-list" class="exp-vbtn" onclick="setExpView('list')" title="Lista">☰</button></div>
           <input class="form-input" id="exp-query" style="width:180px;padding:8px 10px;font-size:12px" placeholder="Buscar trabajo…" oninput="setExpQuery(this.value)">
           <select class="form-select" id="exp-sort" style="width:auto;padding:8px 10px;font-size:12px" onchange="setExpSort(this.value)">
-            <option value="recent">Más recientes</option><option value="name">Carátula</option><option value="status">Estado</option><option value="type">Tipo</option><option value="deadline">Plazo</option>
+            <option value="recent">Más recientes</option><option value="oldest">Más antiguas</option><option value="name">A-Z · Carátula</option><option value="name-desc">Z-A · Carátula</option><option value="subject">Materia / área</option><option value="status">Estado</option><option value="deadline">Plazo</option>
           </select>
           <button class="btn-ghost hide-on-mobile" onclick="openImportCausas()">⬆ Importar tabla</button>
           <button class="btn-ghost" onclick="toggleExpSel()">☑ Seleccionar</button>

@@ -181,13 +181,14 @@ function renderModelos() {
     const isDefault = MODELOS_DEFAULT.some((d) => d.id === m.id);
     const resumen = doc ? ((m.roles || []).map((r) => r.label).filter(Boolean).join(' · ') || 'Sin roles definidos') : `Cabecera: ${m.cabecera || m.suma || '—'}`;
     const vars = (m.variables || []).map((v) => `[${v.id}]`).join(', ');
+    const materiaTag = m.materia && m.materia !== 'general' ? `<span class="mdl-tag">${escapeHtml(m.materia)}</span>` : '';
     const otrosiTag = (m.otrosiesDefault || []).length ? `<span class="mdl-tag">+${m.otrosiesDefault.length} otrosíes</span>` : '';
     const dragAttrs = adm ? `draggable="true" ondragstart="mdlDragStart(event,'${m.id}')" ondragover="event.preventDefault();this.classList.add('mdl-over')" ondragleave="this.classList.remove('mdl-over')" ondrop="this.classList.remove('mdl-over');mdlDrop('${m.id}')"` : '';
     const oculto = m.paraTodos === false;
     return `<div class="mdl-card${oculto ? ' mdl-hidden' : ''}" ${dragAttrs}>
       ${adm ? '<span class="mdl-grip" title="Arrastra para reordenar">⠿</span>' : ''}
       <div style="flex:1">
-        <div class="mdl-name">${escapeHtml(m.nombre)} ${m.esOtrosi ? '<span class="mdl-tag">otrosí</span>' : ''}${otrosiTag}${m.usaMembrete ? '<span class="mdl-tag">membrete</span>' : ''}${oculto ? '<span class="mdl-tag" style="background:rgba(255,120,120,.16);color:#f9a">solo admin</span>' : ''}</div>
+        <div class="mdl-name">${escapeHtml(m.nombre)} ${m.esOtrosi ? '<span class="mdl-tag">otrosí</span>' : ''}${materiaTag}${otrosiTag}${m.usaMembrete ? '<span class="mdl-tag">membrete</span>' : ''}${oculto ? '<span class="mdl-tag" style="background:rgba(255,120,120,.16);color:#f9a">solo admin</span>' : ''}</div>
         <div class="mdl-suma">${escapeHtml(resumen)}</div>
         ${vars ? `<div class="mdl-vars">Variables: ${escapeHtml(vars)}</div>` : ''}
       </div>

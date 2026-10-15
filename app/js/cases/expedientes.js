@@ -88,33 +88,72 @@ async function doBulkShareCausas(){
 }
 let _expFilter='todas';   // todas | causas | prep | asuntos
 let _expQuery='', _expSort='recent';
+let _expSubject='all';
+let _expGroup='lane';
 function expFilterOk(e){
   if(_expFilter==='causas')  return e.kind!=='asunto' && !e.prep;
   if(_expFilter==='prep')    return !!e.prep;
   if(_expFilter==='asuntos') return e.kind==='asunto';
   return true;
 }
+function expSubject(e){ return String((e&&(e.tipo||e.materia))||'Sin materia').trim()||'Sin materia'; }
+function expSubjectOk(e){ return _expSubject==='all'||expSubject(e).toLowerCase()===String(_expSubject).toLowerCase(); }
+function expSubjectOptions(){
+  const values=new Map();
+  try{ (materias()||[]).forEach(v=>{ const s=String(v||'').trim(); if(s&&s.toLowerCase()!=='general') values.set(s.toLowerCase(),s); }); }catch(_){ }
+  EXPEDIENTES.forEach(e=>{ const s=expSubject(e); if(s!=='Sin materia') values.set(s.toLowerCase(),s); });
+  return [...values.values()].sort((a,b)=>a.localeCompare(b,'es'));
+}
 function expQueryOk(e){
   const q=(_expQuery||'').trim().toLowerCase(); if(!q) return true;
   return [e.name,e.rit,e.ruc,e.rol,e.tribunal,e.contraparte,e.tipo,e.materia,e.estado,e.abogado,e.cuantia,e.plazo,e.carpeta,e.obs].filter(Boolean).join(' ').toLowerCase().includes(q);
 }
 function expVisibleList(){
-  const list=EXPEDIENTES.filter(e=>expFilterOk(e)&&expQueryOk(e));
+  const list=EXPEDIENTES.filter(e=>expFilterOk(e)&&expSubjectOk(e)&&expQueryOk(e));
   if(_expSort==='name') list.sort((a,b)=>(causaLabel(a)||'').localeCompare(causaLabel(b)||''));
+  else if(_expSort==='name-desc') list.sort((a,b)=>(causaLabel(b)||'').localeCompare(causaLabel(a)||''));
   else if(_expSort==='status') list.sort((a,b)=>(a.estado||'').localeCompare(b.estado||'')||(b.updated||0)-(a.updated||0));
   else if(_expSort==='type') list.sort((a,b)=>(a.tipo||a.materia||'').localeCompare(b.tipo||b.materia||'')||(b.updated||0)-(a.updated||0));
+  else if(_expSort==='subject') list.sort((a,b)=>expSubject(a).localeCompare(expSubject(b),'es')||(b.updated||0)-(a.updated||0));
   else if(_expSort==='deadline') list.sort((a,b)=>(a.plazo||'').localeCompare(b.plazo||'')||(b.updated||0)-(a.updated||0));
+  else if(_expSort==='oldest') list.sort((a,b)=>(a.updated||a.created||0)-(b.updated||b.created||0));
   else list.sort((a,b)=>(b.updated||b.created||0)-(a.updated||a.created||0));
   return list;
 }
 function setExpFilter(f){ _expFilter=f; renderExpedientes(); }
 function setExpQuery(value){ _expQuery=value||''; renderExpedientes(); }
 function setExpSort(value){ _expSort=value||'recent'; renderExpedientes(); }
+function setExpSubject(value){ _expSubject=value||'all'; renderExpedientes(); }
+function setExpGroup(value){ _expGroup=value||'lane'; renderExpedientes(); }
+function expSubjectMenu(ev){
+  const items=[{head:'Filtrar por materia / área'},{icon:'✦',label:'Todas las materias',onclick:()=>setExpSubject('all')}];
+  expSubjectOptions().forEach(s=>items.push({icon:_expSubject.toLowerCase()===s.toLowerCase()?'✓':'·',label:s,onclick:()=>setExpSubject(s)}));
+  showCtx(ev,items);
+}
+function expGroupMenu(ev){
+  const labels={lane:'Tipo de trabajo',subject:'Materia / área',status:'Estado',none:'Sin agrupación'};
+  const items=[{head:'Agrupar expedientes'}];
+  Object.entries(labels).forEach(([key,label])=>items.push({icon:_expGroup===key?'✓':'·',label,onclick:()=>setExpGroup(key)}));
+  showCtx(ev,items);
+}
+function expGroupEntries(list){
+  if(_expGroup==='none') return [['all','',list]];
+  if(_expGroup==='subject'||_expGroup==='status'){
+    const groups=new Map();
+    list.forEach(e=>{ const key=_expGroup==='subject'?expSubject(e):(String(e.estado||'Sin estado').trim()||'Sin estado'); if(!groups.has(key)) groups.set(key,[]); groups.get(key).push(e); });
+    return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],'es')).map(([key,items])=>[key,key,items]);
+  }
+  return EXP_LANES.map(([key,label])=>[key,label,list.filter(e=>expLaneOf(e)===key)]).filter(([,label,items])=>items.length);
+}
 function expFilterBar(){
-  const n=f=>EXPEDIENTES.filter(e=>{ const byType=f==='causas'?(e.kind!=='asunto'&&!e.prep):f==='prep'?!!e.prep:f==='asuntos'?e.kind==='asunto':true; return byType&&expQueryOk(e); }).length;
+  const n=f=>EXPEDIENTES.filter(e=>{ const byType=f==='causas'?(e.kind!=='asunto'&&!e.prep):f==='prep'?!!e.prep:f==='asuntos'?e.kind==='asunto':true; return byType&&expSubjectOk(e)&&expQueryOk(e); }).length;
+  const subjectLabel=_expSubject==='all'?'Materia / área':_expSubject;
+  const groupLabel={lane:'Tipo',subject:'Materia',status:'Estado',none:'Sin agrupar'}[_expGroup]||'Tipo';
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">`+
     [['todas','Todas'],['causas','📁 Causas'],['prep','📝 En preparación'],['asuntos','📑 Asuntos']]
-      .map(([k,l])=>`<button class="btn-ghost ${_expFilter===k?'on':''}" style="font-size:12px;${_expFilter===k?'color:var(--gold);border-color:rgba(201,168,76,.4)':''}" onclick="setExpFilter('${k}')">${l} <span style="opacity:.6">${n(k)}</span></button>`).join('')+`</div>`;
+      .map(([k,l])=>`<button class="btn-ghost ${_expFilter===k?'on':''}" style="font-size:12px;${_expFilter===k?'color:var(--gold);border-color:rgba(201,168,76,.4)':''}" onclick="setExpFilter('${k}')">${l} <span style="opacity:.6">${n(k)}</span></button>`).join('')+
+    `<button class="btn-ghost ${_expSubject!=='all'?'on':''}" style="font-size:12px;${_expSubject!=='all'?'color:var(--gold);border-color:rgba(201,168,76,.4)':''}" onclick="expSubjectMenu(event)">📚 ${escapeHtml(subjectLabel)}</button>`+
+    `<button class="btn-ghost" style="font-size:12px" onclick="expGroupMenu(event)">▦ Agrupar: ${escapeHtml(groupLabel)}</button></div>`;
 }
 function renderExpedientes(){
   migrateExpTipo();
@@ -140,6 +179,7 @@ function renderExpedientes(){
           <div class="mcard-row">${escapeHtml(e.rit||e.rol||'—')} · 👤 ${escapeHtml(cli?cli.nombre:(e.cliente||'—'))} · 📄 ${n}${e.plazo?' · ⏰ '+escapeHtml(e.plazo):''}</div>
           ${_expSelMode?'':`<div class="mcard-acts"><button class="btn-ghost" onclick="event.stopPropagation();openExpediente('${e.id}')">Abrir</button><button class="btn-ghost" onclick="event.stopPropagation();openRedactar('${e.id}')">✍️ Redactar</button></div>`}
         </div>`; }).join('');
+      host.innerHTML=expFilterBar()+expSelBar()+host.innerHTML;
       return;
     }
     const rowOf=e=>{
@@ -155,19 +195,19 @@ function renderExpedientes(){
         <td style="text-align:right;white-space:nowrap"><button class="btn-ghost" onclick="event.stopPropagation();openExpediente('${e.id}')">Abrir</button> <button class="btn-ghost" onclick="event.stopPropagation();openRedactar('${e.id}')">✍️</button> <button class="btn-ghost" style="color:var(--danger)" onclick="event.stopPropagation();deleteExpediente('${e.id}')">🗑</button></td>
       </tr>`;
     };
-    // agrupada por tipo (secciones)
-    const rows=EXP_LANES.map(([k,lbl])=>{ const items=list.filter(e=>expLaneOf(e)===k); if(!items.length) return '';
-      return `<tr class="exp-trsec"><td colspan="7">${lbl} · ${items.length}</td></tr>`+items.map(rowOf).join(''); }).join('');
+    const rows=expGroupEntries(list).map(([,label,items])=>{
+      const heading=label?`<tr class="exp-trsec"><td colspan="7">${escapeHtml(label)} · ${items.length}</td></tr>`:'';
+      return heading+items.map(rowOf).join('');
+    }).join('');
     host.innerHTML=expFilterBar()+expSelBar()+`<table class="cli-table"><thead><tr><th>Caratulado</th><th>RIT/Rol</th><th>Cliente</th><th>Estado</th><th>Plazo</th><th style="text-align:center">Docs</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
     return;
   }
   // Modo selección múltiple: grilla simple, sin arrastre
   // Grilla ordenada (cada carpeta en su espacio), agrupada por tipo. También en modo selección y en móvil.
   if(_expSelMode || isMobile() || STATE.expView!=='libre'){
-    const showG=k=> _expFilter==='todas' || (_expFilter==='causas'&&k==='causa') || (_expFilter==='prep'&&(k==='demanda'||k==='contestacion')) || (_expFilter==='asuntos'&&k==='asunto');
-    const secs=EXP_LANES.filter(([k])=>showG(k)).map(([k,lbl])=>{
-      const items=list.filter(e=>expLaneOf(e)===k); if(!items.length) return '';
-      return `<div class="exp-sec-h">${lbl} <span style="opacity:.5">${items.length}</span></div><div class="exp-grid">${items.map(e=>folderCardHTML(e)).join('')}</div>`;
+    const secs=expGroupEntries(list).map(([,label,items])=>{
+      const heading=label?`<div class="exp-sec-h">${escapeHtml(label)} <span style="opacity:.5">${items.length}</span></div>`:'';
+      return heading+`<div class="exp-grid">${items.map(e=>folderCardHTML(e)).join('')}</div>`;
     }).join('');
     host.innerHTML=expFilterBar()+expSelBar()+(secs||'<div style="font-size:13px;color:var(--gray2);padding:12px">Sin carpetas en este filtro.</div>');
     return;

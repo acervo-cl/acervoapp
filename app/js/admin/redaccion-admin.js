@@ -1008,7 +1008,7 @@ function renderModeled(){
   } else {
     left=`${insBar}${ta('cabecera',labCab,_ME.cabecera,'Téngase Presente',58)}${ta('cuerpo','Cuerpo (contenido)',_ME.cuerpo,'Que, por este acto, vengo en…',140)}${ta('pie',labPie,_ME.pie,'tener presente lo expuesto…',58)}${extras}${varsBlock}${membreteChk}`;
   }
-  const materiaSel = judicial ? `<div class="form-row"><label class="form-label">Materia (en qué causas aparece)</label><select class="form-select" onchange="meSet('materia',this.value)">${materiaOptions(_ME.materia||'general', true)}</select></div>` : '';
+  const materiaSel = `<div class="form-row"><label class="form-label">Materia / área (para organizar y filtrar)</label><select class="form-select" onchange="meSet('materia',this.value)">${materiaOptions(_ME.materia||'general', true)}</select></div>`;
   const fmtBtn = `<div class="form-row"><label class="form-label">Formato del documento</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn-ghost" onclick="openModeloFormato()">${_ME.fmt?'⚙️ Formato propio ✓ (editar)':'⚙️ Usar formato propio'}</button>${_ME.fmt?`<button class="btn-ghost" style="color:var(--danger)" onclick="_ME.fmt=undefined;renderModeled()">Quitar (usar el general)</button>`:'<span style="font-size:11px;color:var(--gray2)">Usa el formato general</span>'}</div></div>`;
   host.innerHTML=`<div class="modal-title">${_ME._isNew?'Nuevo':'Editar'} · ${escapeHtml(tp.nombre||'documento')}</div>
     ${tipoSel}

@@ -83,7 +83,7 @@ function rwStepModelo() {
   const lbl = (tipoById(_RW.tipoDoc) || {}).piezaLabel || 'modelo';
   if (!piezas.length) return '<div class="redactar-hint">No hay modelos en este tipo. El admin los crea en 📋 Modelos.</div><div class="modal-footer"><button class="btn-ghost" onclick="rwGo(-1)">← Atrás</button></div>';
   const selId = (_RW.escs[0] || {}).modeloId;
-  const rows = piezas.map((m) => `<div class="rw-causa-item ${selId === m.id ? 'on' : ''}" onclick="rwTap('pieza','${m.id}')"><div class="rw-causa-t">📜 ${escapeHtml(m.nombre)}</div><div class="rw-causa-s">${escapeHtml((m.roles || []).map((r) => r.label).filter(Boolean).join(' · ') || '')}</div></div>`).join('');
+  const rows = piezas.map((m) => { const materia = m.materia && m.materia !== 'general' ? ` · ${m.materia}` : ''; return `<div class="rw-causa-item ${selId === m.id ? 'on' : ''}" onclick="rwTap('pieza','${m.id}')"><div class="rw-causa-t">📜 ${escapeHtml(m.nombre)}</div><div class="rw-causa-s">${escapeHtml((m.roles || []).map((r) => r.label).filter(Boolean).join(' · ') + materia || '')}</div></div>`; }).join('');
   return `<div style="font-size:13px;color:var(--gray2);margin-bottom:10px">Elige el ${escapeHtml(lbl.toLowerCase())}.</div>
     <div class="rw-causa-list">${rows}</div>
     <div class="modal-footer"><button class="btn-ghost" onclick="rwGo(-1)">← Atrás</button><button class="btn-gold" onclick="rwGo(1)">Siguiente →</button></div>`;
