@@ -266,6 +266,7 @@ function generarEscritoTexto(cx, escs){
       case 'otrosies': txt=vals.otrosies||''; break;
       case 'pie': txt=fillMarkers(pt.texto||'{{contenido}}', {contenido:vals.pie||''}); break;
     }
+    txt=resolveTokens(txt,cx);
     if((txt||'').trim()){ if(pt.align) txt=`[[ALIGN:${pt.align}]]\n${txt}\n[[/ALIGN]]`; blocks.push(txt); }
   });
   return blocks.join("\n\n").replace(/\n{3,}/g,"\n\n").trimEnd();

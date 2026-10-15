@@ -50,3 +50,46 @@ test('structure editor wraps the selected text with formatting markers', () => {
   assert.equal(textarea.selectionStart, 10);
   assert.equal(textarea.selectionEnd, 15);
 });
+
+test('drafting resolves party and case variables throughout the model body', () => {
+  const source = readFileSync(new URL('../app/js/drafting/drafting-runtime-core.js', import.meta.url), 'utf8');
+  const model = {
+    id: 'm-body',
+    tipoId: 'escrito',
+    cabecera: 'SOLICITA {{causa.rol}}',
+    cuerpo: 'Cliente: {{cliente.nombre}} · RUT: {{cliente.rut}} · Materia: {{causa.materia}}',
+    pie: '',
+    variables: [],
+  };
+  const context = {
+    STATE: { nombreMayusNegrita: false, perfilAbogado: { nombre: 'Ana Abogada', cargo: 'abogada' } },
+    CLIENTES: [{ id: 'c1', nombre: 'Carlos Cliente', rut: '1-9', genero: 'm' }],
+    EMPRESAS: [],
+    EXPEDIENTES: [],
+    MODELOS: [model],
+    MODELOS_DEFAULT: [],
+    TIPOSDOC: [{ id: 'escrito', motor: 'judicial', partes: [{ key: 'cuerpo', on: true }] }],
+    TIPOSDOC_DEFAULT: [],
+    findColaborador() { return null; },
+    saveState() {},
+    tipoOfModel: (m) => context.TIPOSDOC.find((t) => t.id === m.tipoId),
+    tribunalHeading() { return ''; },
+    fillMarkers(tpl, map) {
+      return Object.keys(map).reduce((text, key) => text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), map[key] ?? ''), tpl || '');
+    },
+  };
+  vm.runInNewContext(`${source}\nthis.testGenerate = generarEscritoTexto;`, context);
+
+  const result = context.testGenerate({
+    clienteId: 'c1',
+    rol: 'C-1-2026',
+    materia: 'Alimentos',
+    caratula: 'Cliente con Contraparte',
+    partes: {},
+  }, [{ modeloId: 'm-body', vars: {} }]);
+
+  assert.match(result, /Cliente: Carlos Cliente/);
+  assert.match(result, /RUT: 1-9/);
+  assert.match(result, /Materia: Alimentos/);
+  assert.doesNotMatch(result, /\{\{cliente\.|\{\{causa\./);
+});
