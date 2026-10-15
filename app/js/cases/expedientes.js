@@ -1261,52 +1261,7 @@ async function unshareCausa(id){
 //   privadas y, si quiere, puede DEVOLVERLE sus notas al dueño (opt-in).
 // ════════════════════════════════════════════════════════════════
 let _sharedDocIds=new Set();
-let _sharedShelfIndexes=[];
-let _mySharedShelfIndex=null;
-let _sharedShelfSyncT=null;
-const SHARED_SHELF_KIND='bookshelf_index';
-
-function _sharedShelfId(){ return `shelf_${STATE.uid}`; }
-function _shelfIndexBooks(){
-  const docs=(DOCUMENTS||[]).filter(d=>d && !d.sharedDoc);
-  const order=Array.isArray(STATE.docOrder)?STATE.docOrder:[];
-  return docs.slice().sort((a,b)=>{
-    const ia=order.indexOf(a.id), ib=order.indexOf(b.id);
-    return (ia<0?9999:ia)-(ib<0?9999:ib);
-  });
-}
-function _shelfIndexPayload(){
-  const books=_shelfIndexBooks().map(d=>({
-    id:d.id, title:d.title||'Libro', author:d.author||'', subject:d.subject||'', type:d.type||'',
-    pages:d.pages||0, tags:Array.isArray(d.tags)?d.tags.slice():[],
-    status:d.status||'pending', progress:Number(d.progress)||0,
-    topics:((STATE.bookmarks||{})[d.id]||[]).filter(x=>x&&x.label).map(x=>({pos:x.pos||0,label:x.label}))
-  }));
-  return {title:`Estantería de ${STATE.user||'usuario'}`,books,updatedAt:new Date().toISOString()};
-}
-async function pushSharedShelfIndex(){
-  if(typeof sb==='undefined'||!sb||!STATE.uid) return false;
-  const data=_shelfIndexPayload(), id=_sharedShelfId(), updatedAt=new Date().toISOString();
-  try{
-    const {error}=await sb.from('shared_docs').upsert({id,owner_id:STATE.uid,kind:SHARED_SHELF_KIND,data,updated_at:updatedAt});
-    if(error) throw error;
-    _mySharedShelfIndex={id,data,updated_at:updatedAt};
-    return true;
-  }catch(e){ toast('No se pudo compartir el índice: '+(e.message||''),'error'); return false; }
-}
-function syncSharedShelfIndexIfMine(){
-  if(!_mySharedShelfIndex||typeof sb==='undefined'||!sb||!STATE.uid) return;
-  clearTimeout(_sharedShelfSyncT);
-  _sharedShelfSyncT=setTimeout(()=>{ pushSharedShelfIndex(); },900);
-}
-async function unshareShelfIndex(){
-  if(!_mySharedShelfIndex||!confirm('¿Dejar de compartir el índice de tu estantería?')) return;
-  try{
-    const {error}=await sb.from('shared_docs').delete().eq('id',_mySharedShelfIndex.id);
-    if(error) throw error;
-    _mySharedShelfIndex=null; closeAllModals(); toast('Índice dejado de compartir','success');
-  }catch(e){ toast('No se pudo dejar de compartir: '+(e.message||''),'error'); }
-}
+let _sharedDocVersions=new Map();
 function _ensureSharedSubject(){ if(!SUBJECTS.find(s=>s.id==='__shared__')) SUBJECTS.push({id:'__shared__', name:'Compartidos', icon:'📢', color:'#C9A84C', progress:0, desc:'Libros compartidos contigo.'}); }
 function _findAnyDoc(id){ return DOCUMENTS.find(x=>x.id===id)||APUNTES.find(x=>x.id===id)||DOCUMENTOS.find(x=>x.id===id); }
 function _docKindOf(d){ if(!d) return 'libro'; if(d.kind==='apunte'||APUNTES.includes(d)) return 'apunte'; if(d.kind==='documento'||DOCUMENTOS.includes(d)) return 'documento'; return 'libro'; }
@@ -1317,7 +1272,8 @@ function _docPayload(id){
   const kind=_docKindOf(d);
   const doc={...d}; ['shared','sharedDoc','myRole','sharedOwner'].forEach(k=>delete doc[k]);
   const withNotes = d._shareNotes!==false;                 // el dueño eligió al compartir
-  return { doc, kind, withNotes, annotations: withNotes ? _myDocAnns(id) : [] };
+  const bookmarks = kind==='libro' ? cloneSharedBookBookmarks((STATE.bookmarks||{})[id]) : [];
+  return { doc, kind, withNotes, bookmarks, annotations: withNotes ? _myDocAnns(id) : [] };
 }
 async function pushSharedDoc(id){
   if(typeof sb==='undefined'||!sb||!STATE.uid) return false;
@@ -1338,31 +1294,22 @@ async function syncSharedDocIfMine(id){
 }
 async function loadSharedDocs(){
   if(typeof sb==='undefined'||!sb||!STATE.uid) return;
+  const previousSharedIds=new Set([...DOCUMENTS,...APUNTES,...DOCUMENTOS].filter(d=>d.sharedDoc).map(d=>d.id));
+  previousSharedIds.forEach(id=>{ delete STATE.bookmarks[id]; });
   for(let i=DOCUMENTS.length-1;i>=0;i--)  if(DOCUMENTS[i].sharedDoc)  DOCUMENTS.splice(i,1);
   for(let i=APUNTES.length-1;i>=0;i--)    if(APUNTES[i].sharedDoc)    APUNTES.splice(i,1);
   for(let i=DOCUMENTOS.length-1;i>=0;i--) if(DOCUMENTOS[i].sharedDoc) DOCUMENTOS.splice(i,1);
   for(let i=ANNOTATIONS.length-1;i>=0;i--) if(ANNOTATIONS[i].shared)  ANNOTATIONS.splice(i,1);
   _sharedDocIds=new Set();
-  _sharedShelfIndexes=[];
-  _mySharedShelfIndex=null;
+  _sharedDocVersions=new Map();
   try{
     const {data:mem}=await sb.from('shared_doc_members').select('doc_id,role,share_notes').eq('user_id',STATE.uid);
     const myMem={}; (mem||[]).forEach(m=>myMem[m.doc_id]=m);
     const {data:rows,error}=await sb.from('shared_docs').select('*'); if(error) throw error;
     let _fcGot=0;
     for(const r of (rows||[])){
-      if((r.kind||'')===SHARED_SHELF_KIND){
-        if(r.owner_id===STATE.uid){
-          _mySharedShelfIndex={id:r.id,data:r.data||{},updated_at:r.updated_at||null};
-        }else if(myMem[r.id]){
-          _sharedShelfIndexes.push({
-            id:r.id, owner_id:r.owner_id, updated_at:r.updated_at||null,
-            title:(r.data||{}).title||'Estantería compartida',
-            books:Array.isArray((r.data||{}).books)?(r.data||{}).books:[]
-          });
-        }
-        continue;
-      }
+      if((r.kind||'')==='bookshelf_index') continue; // legado: ya no se carga el índice global de biblioteca
+      _sharedDocVersions.set(r.id, r.updated_at || '');
       _sharedDocIds.add(r.id);
       if((r.kind||'')==='flashpack'){ if(r.owner_id!==STATE.uid) _fcGot+=_importFlashpack(r); continue; }   // pack de flashcards compartido → copia a mi colección (una vez)
       const data=r.data||{}; const doc=data.doc; if(!doc) continue;
@@ -1377,7 +1324,12 @@ async function loadSharedDocs(){
       }
       const arr=_docArray(kind);
       const extra={};
-      if(kind==='libro'){ _ensureSharedSubject(); extra.subject='__shared__'; }   // aparece en el área "Compartidos" del estante
+      if(kind==='libro'){
+        _ensureSharedSubject();
+        extra.subject='__shared__';
+        STATE.bookmarks[r.id]=cloneSharedBookBookmarks(data.bookmarks);
+        if(!STATE.docOrder.includes(r.id)) STATE.docOrder.push(r.id);
+      }   // el libro compartido ocupa su propio lugar en la biblioteca receptora
       if(!arr.find(x=>x.id===r.id)) arr.push({...doc, id:r.id, shared:true, sharedDoc:true, myRole:(myMem[r.id]&&myMem[r.id].role)||'viewer', sharedOwner:r.owner_id, _shareBack:!!(myMem[r.id]&&myMem[r.id].share_notes), ...extra});
       (data.annotations||[]).forEach(a=>ANNOTATIONS.push({...a, docId:r.id, shared:true, byAuthor:true, readOnly:true}));   // notas del dueño = del autor
     }
@@ -1427,10 +1379,11 @@ async function openDocShare(id){
   if(!STATE.profiles || !STATE.profiles.length){ try{ const {data}=await sb.from('profiles').select('id,email,role').order('email'); STATE.profiles=data||[]; }catch(_){} }
   const amRecipient=!!d.shared;
   const titulo=escapeHtml(d.title||'Documento');
+  const isBook=_docKindOf(d)==='libro';
   if(amRecipient){
     const owner=(STATE.profiles.find(p=>p.id===d.sharedOwner)||{}).email||'otro usuario';
     body.innerHTML=`<div class="modal-title">🤝 ${titulo}</div>
-      <div style="font-size:13px;color:var(--gray2);margin-bottom:12px">Compartido por <b>${escapeHtml(owner)}</b>. Ves sus notas (✍️) en solo lectura; las tuyas son privadas.</div>
+      <div style="font-size:13px;color:var(--gray2);margin-bottom:12px">${isBook?'Ves el libro y su índice de temas. ':''}Compartido por <b>${escapeHtml(owner)}</b>. Sus notas (✍️) son de solo lectura; las tuyas son privadas.</div>
       <label class="rw-check"><input type="checkbox" ${d._shareBack?'checked':''} onchange="toggleShareMyNotes('${id}',this.checked)"> Compartir MIS notas con el dueño</label>
       ${d._shareBack?`<div style="margin-top:8px"><button class="btn-ghost" onclick="pushMyDocNotes('${id}').then(()=>toast('Tus notas actualizadas','success'))">💾 Actualizar mis notas</button></div>`:''}
       <div class="modal-footer"><button class="btn-gold" onclick="closeAllModals()">Cerrar</button></div>`;
@@ -1450,8 +1403,8 @@ async function openDocShare(id){
       <button class="btn-gold" onclick="inviteDocMember('${id}')">Compartir</button>`:`<div style="font-size:12px;color:var(--gray2)">No tienes colaboradores. Agrégalos en <a style="color:var(--gold3);cursor:pointer" onclick="closeAllModals();openSocial()">🌐 Social</a> y luego compárteles.</div><div style="display:none">`}
     </div></div>`;
   body.innerHTML=`<div class="modal-title">🤝 Compartir con colegas</div>
-    <div style="font-size:13px;color:var(--gray2);margin-bottom:10px">“${titulo}”. Los colegas lo ven en solo lectura. ${d.hasFile?'El archivo (PDF/imagen) también se comparte. ':''}</div>
-    <label class="rw-check"><input type="checkbox" id="doc-share-notes" ${d._shareNotes!==false?'checked':''} ${isShared?'onchange="shareDoc(\''+id+'\')"':''}> Incluir MIS notas (se ven como del autor ✍️)</label>
+    <div style="font-size:13px;color:var(--gray2);margin-bottom:10px">“${titulo}”. ${isBook?'Se comparte el libro, su índice de temas y las notas seleccionadas. ':''}Los colegas lo ven en solo lectura. ${d.hasFile?'El archivo (PDF/imagen) también se comparte. ':''}</div>
+    <label class="rw-check"><input type="checkbox" id="doc-share-notes" ${d._shareNotes!==false?'checked':''} ${isShared?'onchange="shareDoc(\''+id+'\')"':''}> Incluir mis notas como autor (solo lectura)</label>
     <label class="rw-check"><input type="checkbox" id="doc-allow-dl" ${d.allowDownload?'checked':''} onchange="setDocAllowDownload('${id}',this.checked)"> ⬇ Permitir que lo descarguen</label>
     ${isShared?`<div class="partes-h" style="margin-top:12px">Colegas con acceso</div>${memberRows}${inviteRow}
       <div class="modal-footer" style="justify-content:space-between"><button class="btn-ghost" style="color:var(--danger)" onclick="unshareDoc('${id}')">Dejar de compartir</button><button class="btn-gold" onclick="pushSharedDoc('${id}').then(()=>toast('Actualizado para el equipo','success'))">💾 Actualizar</button></div>`

@@ -68,86 +68,9 @@ function renderShelf() {
       html += '</div></div>';
     }
   }
-  html += renderSharedShelfIndexes();
   wrap.innerHTML = html;
   const pane = document.getElementById('shelf-preview');
   if (pane && !pane.dataset.docid) pane.innerHTML = PREVIEW_PLACEHOLDER;
-}
-
-function renderSharedShelfIndexes() {
-  const indexes = (typeof _sharedShelfIndexes !== 'undefined' && Array.isArray(_sharedShelfIndexes)) ? _sharedShelfIndexes : [];
-  return indexes.map(index => {
-    const books = Array.isArray(index.books) ? index.books : [];
-    const chips = books.slice(0, 8).map(book => `<span class="shelf-shared-index-book">${escapeHtml(book.title || 'Libro')}</span>`).join('');
-    const more = books.length > 8 ? `<span class="shelf-shared-index-book">+${books.length - 8} más</span>` : '';
-    return `<div class="shelf-shared-index">
-      <div class="shelf-shared-index-head"><div><div class="shelf-shared-index-title">📚 ${escapeHtml(index.title || 'Estantería compartida')}</div><div class="shelf-shared-index-meta">${books.length} libro(s) · solo índice y marcadores de temas</div></div><button class="btn-gold" style="padding:7px 11px;font-size:12px" onclick="openSharedShelfIndex('${escapeHtml(index.id)}')">Ver índice</button></div>
-      <div class="shelf-shared-index-books">${chips}${more}</div>
-    </div>`;
-  }).join('');
-}
-
-function openSharedShelfIndex(id) {
-  const index = (typeof _sharedShelfIndexes !== 'undefined' ? _sharedShelfIndexes : []).find(x => x.id === id);
-  const body = document.getElementById('shelf-view-body');
-  if (!index || !body) return;
-  const books = Array.isArray(index.books) ? index.books : [];
-  const rows = books.length ? books.map(book => {
-    const local = typeof findDoc === 'function' ? findDoc(book.id) : null;
-    const topics = Array.isArray(book.topics) && book.topics.length ? `<div style="font-size:11px;color:var(--gray2);margin-top:3px">📑 ${book.topics.map(x => escapeHtml(x.label)).join(' · ')}</div>` : '';
-    const action = local ? `<button class="btn-ghost" style="padding:5px 9px;font-size:11px" onclick="closeAllModals();openReader('${escapeHtml(book.id)}')">Abrir</button>` : '<span style="font-size:11px;color:var(--gray2)">Solo índice</span>';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${escapeHtml(book.title || 'Libro')}</div><div style="font-size:11px;color:var(--gray2)">${escapeHtml([book.author, book.subject].filter(Boolean).join(' · '))}</div>${topics}</div>${action}</div>`;
-  }).join('') : '<div style="font-size:12px;color:var(--gray2);padding:10px 0">La estantería no tenía libros al momento de compartirla.</div>';
-  body.innerHTML = `<div class="modal-title">📚 ${escapeHtml(index.title || 'Estantería compartida')}</div><div style="font-size:12px;color:var(--gray2);margin:-7px 0 12px">Este índice muestra títulos, orden y marcadores. El contenido solo se puede abrir si el libro también fue compartido.</div><div>${rows}</div><div class="modal-footer"><button class="btn-gold" onclick="closeAllModals()">Cerrar</button></div>`;
-  openModal('modal-shelf-view');
-}
-
-async function openShelfIndexShare() {
-  const body = document.getElementById('shelf-share-body');
-  if (!body) return;
-  body.innerHTML = '<div style="color:var(--gray2);padding:8px">Cargando…</div>';
-  openModal('modal-shelf-share');
-  if (typeof sb === 'undefined' || !sb || !STATE.uid) { body.innerHTML = '<div style="color:var(--warn)">Necesitas sesión en la nube para compartir.</div>'; return; }
-  if (!STATE.profiles || !STATE.profiles.length) { try { const { data } = await sb.from('profiles').select('id,email,display_name,role').order('email'); STATE.profiles = data || []; } catch (_) {} }
-  const id = typeof _sharedShelfId === 'function' ? _sharedShelfId() : '';
-  const isShared = !!(typeof _mySharedShelfIndex !== 'undefined' && _mySharedShelfIndex);
-  let members = [];
-  if (isShared) { try { const { data } = await sb.from('shared_doc_members').select('*').eq('doc_id', id); members = data || []; } catch (_) {} }
-  const others = socialCollaborators().filter(p => p && p.id && p.id !== STATE.uid && !members.find(m => m.user_id === p.id));
-  const memberRows = members.filter(m => m.user_id !== STATE.uid).map(m => `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><span style="flex:1;font-size:13px">${escapeHtml(memberEmail(m))}</span><button class="btn-ghost" style="color:var(--danger);padding:5px 8px" onclick="removeShelfIndexMember('${id}','${escapeHtml(m.user_id)}')">✕</button></div>`).join('') || '<div style="font-size:12px;color:var(--gray2)">Aún sin lectores.</div>';
-  const inviteRow = others.length ? `<div class="form-row" style="margin-top:12px"><label class="form-label">Dar acceso a un colaborador</label><div style="display:flex;gap:8px;flex-wrap:wrap"><select class="form-select" id="shelf-invite-user" style="flex:1;min-width:150px">${others.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.display_name || p.email || '')}</option>`).join('')}</select><button class="btn-gold" onclick="inviteShelfIndexMember('${id}')">Compartir</button></div></div>` : '<div style="font-size:12px;color:var(--gray2);margin-top:12px">No tienes colaboradores disponibles. Agrégalos en 🤝 Mi equipo.</div>';
-  body.innerHTML = `<div class="modal-title">🤝 Compartir índice de estantería</div><div style="font-size:13px;color:var(--gray2);margin-bottom:12px">Compartiré los títulos, autores, materias, orden y marcadores de temas. No se comparten archivos ni el contenido privado de los libros.</div>${isShared ? `<div class="partes-h">Colegas con acceso</div>${memberRows}${inviteRow}<div class="modal-footer" style="justify-content:space-between"><button class="btn-ghost" style="color:var(--danger)" onclick="unshareShelfIndex()">Dejar de compartir</button><button class="btn-gold" onclick="pushSharedShelfIndex().then(()=>toast('Índice actualizado','success'))">💾 Actualizar índice</button></div>` : `<div class="form-row"><label class="form-label">Compartir con</label>${others.length ? `<div style="display:flex;flex-direction:column;gap:6px">${others.map(p => `<label class="perm-check"><input type="checkbox" class="shelf-share-user" value="${escapeHtml(p.id)}"> ${escapeHtml(p.display_name || p.email || '')}</label>`).join('')}</div>` : '<div style="font-size:12px;color:var(--gray2)">No tienes colaboradores disponibles. Agrégalos en 🤝 Mi equipo.</div>'}</div><div class="modal-footer"><button class="btn-ghost" onclick="closeAllModals()">Cancelar</button><button class="btn-gold" ${others.length ? '' : 'disabled'} onclick="shareShelfIndex()">🤝 Compartir índice</button></div>`}`;
-}
-
-async function shareShelfIndex() {
-  const userIds = [...document.querySelectorAll('.shelf-share-user:checked')].map(x => x.value);
-  if (!userIds.length) { toast('Elige al menos un colega', 'error'); return; }
-  const ok = await pushSharedShelfIndex();
-  if (!ok) return;
-  const id = _sharedShelfId();
-  try {
-    const owner = await sb.from('shared_doc_members').upsert({ doc_id:id, user_id:STATE.uid, email:STATE.user || '', role:'owner' });
-    if (owner.error) throw owner.error;
-    const { error: removed } = await sb.from('shared_doc_members').delete().eq('doc_id', id).neq('user_id', STATE.uid);
-    if (removed) throw removed;
-    const { error } = await sb.from('shared_doc_members').insert(userIds.map(userId => ({ doc_id:id, user_id:userId, email:((STATE.profiles || []).find(p => p.id === userId) || {}).email || '', role:'viewer' })));
-    if (error) throw error;
-    toast('Índice compartido', 'success');
-    openShelfIndexShare();
-  } catch (e) { toast('No se pudo compartir el índice: ' + (e.message || e), 'error'); }
-}
-
-async function inviteShelfIndexMember(id) {
-  const uid = (document.getElementById('shelf-invite-user') || {}).value;
-  if (!uid) { toast('Elige un colega', 'error'); return; }
-  const email = ((STATE.profiles || []).find(p => p.id === uid) || {}).email || '';
-  try { const { error } = await sb.from('shared_doc_members').upsert({ doc_id:id, user_id:uid, email, role:'viewer' }); if (error) throw error; toast('Invitado', 'success'); openShelfIndexShare(); }
-  catch (e) { toast('No se pudo invitar: ' + (e.message || e), 'error'); }
-}
-
-async function removeShelfIndexMember(id, uid) {
-  try { const { error } = await sb.from('shared_doc_members').delete().eq('doc_id', id).eq('user_id', uid); if (error) throw error; openShelfIndexShare(); }
-  catch (e) { toast('No se pudo quitar el acceso: ' + (e.message || e), 'error'); }
 }
 
 const PREVIEW_PLACEHOLDER = '<div class="preview-placeholder"><div>📖</div><p>Selecciona un libro del estante<br>para ver su vista previa aquí.</p></div>';
@@ -267,7 +190,7 @@ function shareLibSelected() {
   document.getElementById('import-body').innerHTML = `<div class="modal-title">🤝 Compartir ${docs.length} libro(s)</div>
     <div style="font-size:12.5px;color:var(--gray2);margin-bottom:10px">Elige los colegas que podrán ver los libros seleccionados en modo lectura.</div>
     <div style="max-height:42vh;overflow:auto">${opts}</div>
-    <label class="rw-check" style="margin-top:10px"><input type="checkbox" id="lib-share-notes" checked> Incluir mis notas</label>
+    <label class="rw-check" style="margin-top:10px"><input type="checkbox" id="lib-share-notes" checked> Incluir mis notas como autor (solo lectura)</label>
     <div class="modal-footer"><button class="btn-ghost" onclick="closeAllModals()">Cancelar</button><button class="btn-gold" onclick="doShareLibSelected()">Compartir</button></div>`;
   openModal('modal-import');
 }
