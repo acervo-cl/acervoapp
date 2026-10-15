@@ -424,7 +424,10 @@ function openReaderMore(ev){
     document.addEventListener('click', e=>{ if(!e.target.closest('#reader-more-dd,#btn-reader-more,#rmob-more')) dd.classList.remove('open'); }); }
   if(dd.classList.contains('open')){ dd.classList.remove('open'); return; }
   dd.innerHTML=''; let n=0;
-  const menuButtons = document.querySelectorAll('#reader-screen .reader-actions .rf-hide, #reader-screen .reader-actions .reader-more-action');
+  const rs=document.getElementById('reader-screen');
+  const compactToolbar=!!(rs && (rs.classList.contains('reader-float') || (typeof isMobile==='function' && isMobile())));
+  const menuSelector=compactToolbar ? '.rf-hide' : '.reader-more-action';
+  const menuButtons = document.querySelectorAll(`#reader-screen .reader-actions ${menuSelector}`);
   menuButtons.forEach(b=>{
     if(b.style.display==='none') return;
     n++;
